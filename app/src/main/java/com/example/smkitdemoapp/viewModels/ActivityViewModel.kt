@@ -9,119 +9,149 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.example.smkitdemoapp.events.SessionEvent
 import com.example.smkitdemoapp.models.DemoExercise
-import com.example.smkitdemoapp.models.ExerciseState
-import com.example.smkitdemoapp.models.ConfigureState
-import com.example.smkitdemoapp.models.SessionState
+import com.example.smkitdemoapp.states.session.SessionState
+import com.example.smkitdemoapp.states.configure.ConfigureState
+import com.example.smkitdemoapp.states.configure.Failed
+import com.example.smkitdemoapp.states.configure.Loading
+import com.example.smkitdemoapp.states.configure.Passed
+import com.example.smkitdemoapp.states.exercise.Idle
+import com.example.smkitdemoapp.states.exercise.ExerciseState
+import com.example.smkitdemoapp.states.exercise.Playing
+import com.example.smkitdemoapp.states.exercise.countRep
+import com.example.smkitdemoapp.states.session.Ready
+import com.example.smkitdemoapp.states.session.Running
+import com.example.smkitdemoapp.states.session.Stopped
 import com.sency.smkit.SMKit
 import com.sency.smkit.listener.ConfigurationResult
 import com.sency.smkit.listener.SMKitSessionListener
+import com.sency.smkit.model.DetectionSessionResultData
 import com.sency.smkit.model.FrameInfo
 import com.sency.smkit.model.SMKitJoint
 import com.sency.smkit.model.SMKitMovementData
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlin.jvm.Throws
 
 class ActivityViewModel: ViewModel() {
 
     private val exerciseList = mutableListOf<DemoExercise>()
     private var smKit: SMKit? = null
 
-    private val _configureState = MutableLiveData<ConfigureState?>(null)
-    val configureState: LiveData<ConfigureState?> get() = _configureState
+    private val _sessionEvents = MutableLiveData<SessionEvent>()
+    val sessionEvents: LiveData<SessionEvent> get() = _sessionEvents
 
-    private val _sessionState = MutableLiveData<SessionState?>(null)
-    val sessionState: LiveData<SessionState?> get() = _sessionState
+    private val _configureState = MutableStateFlow<ConfigureState>(Loading)
+    val configureState: Flow<ConfigureState> get() = _configureState
 
-    private val _exerciseState = MutableLiveData(initExerciseState())
+    private val _sessionState = MutableStateFlow<SessionState>(Ready)
+    val sessionState: Flow<SessionState> get() = _sessionState
+
+    private val _exerciseState = MutableLiveData<ExerciseState>(Idle)
     val exerciseState: LiveData<ExerciseState> get() = _exerciseState
-
-    private val _repCounter = MutableLiveData(0)
-    val repCounter: LiveData<Int> get() = _repCounter
 
     fun addExercise(exercise: DemoExercise) {
         exerciseList.add(exercise)
     }
 
-    private val configureListener = object: ConfigurationResult {
-        override fun onFailure() {
-            val state = _configureState.value ?: initState()
-            _configureState.postValue(state.copy(configure = false))
-        }
-
-        override fun onSuccess() {
-            val state = _configureState.value ?: initState()
-            _configureState.postValue(state.copy(configure = true))
-            val exerciseState = _exerciseState.value
-            val name = exerciseList[0].name
-            _exerciseState.postValue(exerciseState?.copy(exerciseIndex = 0, exerciseName = name))
-        }
-    }
-
     fun configure(context: Context) {
-        smKit = SMKit.Builder(context).authKey("").isUI(false).build()
+        smKit = SMKit.Builder(context).authKey("public_live_#gdz3t)mW#\$39Crs").isUI(false).build()
         smKit?.configure(configureListener)
-        smKit?.smKitSessionListener(object : SMKitSessionListener {
-            override fun captureSessionDidSet(frameInfo: FrameInfo) { }
-
-            override fun captureSessionDidStop() {}
-
-            override fun handleDetectionData(movementData: SMKitMovementData?) {
-                Log.d("ViewModel movement", "movmentData: $movementData")
-                if(movementData?.didFinishMovement == true) {
-                    val count = _repCounter.value ?: 0
-                    _repCounter.postValue(count + 1)
-                }
-            }
-
-            override fun handleOriginalCameraImage(image: Bitmap?) {}
-
-            override fun handlePositionData(poseData: Map<SMKitJoint, PointF>?) {
-                Log.d("ViewModel", "poseDate: $poseData")
-            }
-
-            override fun handleSessionErrors() {}
-        })
+        smKit?.smKitSessionListener(smKitSessionListener)
     }
 
-    fun onPause() {
-        val exerciseInfo = smKit?.stopDetection()
-        Log.d("ViewModel", "onPause: $exerciseInfo")
-        val exerciseState = exerciseState.value
-        val newIndex = (exerciseState?.exerciseIndex ?: 0) + 1
-        if (newIndex == exerciseList.size) {
-            onStop()
-            return
-        }
-        val newName = exerciseList[newIndex].name
-        _exerciseState.postValue(exerciseState?.copy(exerciseIndex = newIndex, exerciseName = newName, exerciseRunning = false))
-    }
-
-    fun onStart() {
-        val exerciseState = exerciseState.value
-        val index = exerciseState?.exerciseIndex ?: 0
-        val exercise = exerciseList[index]
-        smKit?.startDetection(exercise.name)
-        _exerciseState.postValue(exerciseState?.copy(exerciseIndex = index, exerciseName = exercise.name, exerciseRunning = true))
-    }
-
-    fun onStop() {
-        val resultData = smKit?.stopSession()
-        Log.d("ViewModel", "onStop: $resultData")
-        _exerciseState.value = exerciseState.value?.copy(exerciseIndex = 0, exerciseName = "", exerciseRunning = false)
-        _sessionState.value = SessionState(sessionRunning = false)
-    }
 
     fun startSession(lifecycleOwner: LifecycleOwner, surfaceProvider: Preview.SurfaceProvider) {
         smKit?.startSession(lifecycleOwner, surfaceProvider)
-        _sessionState.value = SessionState(sessionRunning = true)
+        _sessionState.value = Running
     }
 
-    private fun initState() = ConfigureState(
-        configure = false,
-    )
+    private fun loadExercise(): String {
+        if(exerciseList.isEmpty()) throw IllegalStateException("No Exercises")
+        val exercise= exerciseList.removeAt(0)
+        return exercise.name
+    }
 
-    private fun initExerciseState() = ExerciseState(
-        exerciseIndex = 0,
-        exerciseName = "",
-        exerciseRunning = false
-    )
+    fun runExercise() {
+        when(_exerciseState.value) {
+            null,
+            Idle -> {
+                try{
+                    val exercise = loadExercise()
+                    smKit?.startDetection(exercise)
+                    _exerciseState.postValue(Playing(exercise))
+                } catch (e: IllegalStateException) {
+                    stopSession()
+                }
+            }
+            is Playing -> throw IllegalStateException("Exercise already Running")
+        }
+    }
+
+    private fun clearExercise() {
+        _exerciseState.postValue(Idle)
+    }
+
+    @Throws(IllegalStateException::class)
+    fun pauseExercise() {
+        when(val exercise = _exerciseState.value) {
+            null,
+            Idle -> {
+                throw IllegalStateException("Exercise not Set")
+            }
+            is Playing -> {
+                val exerciseInfo = smKit?.stopDetection()
+                Log.d("ViewModel", "Exercise ${exercise.exerciseName} Finished: $exerciseInfo")
+                _exerciseState.postValue(Idle)
+            }
+        }
+    }
+
+    fun stopSession() {
+        clearExercise()
+        smKit?.stopSession()?.also(::logSessionResults)
+        _sessionState.value = Stopped
+    }
+
+    private fun logSessionResults(results: DetectionSessionResultData) {
+        Log.d("ViewModel", "Session Results: $results")
+    }
+
+    fun clearChooices() {
+        exerciseList.clear()
+    }
+
+    private val configureListener = object: ConfigurationResult {
+        override fun onFailure() {
+            _configureState.value = Failed
+        }
+
+        override fun onSuccess() {
+            _configureState.value = Passed
+        }
+    }
+
+    private val smKitSessionListener = object : SMKitSessionListener {
+        override fun captureSessionDidSet(frameInfo: FrameInfo) {}
+
+        override fun captureSessionDidStop() {}
+
+        override fun handleDetectionData(movementData: SMKitMovementData?) {
+            Log.d("ViewModel movement", "movmentData: $movementData")
+            if (movementData?.didFinishMovement != true) return
+            val exercise = exerciseState.value
+            if (exercise is Playing) {
+                exercise.countRep()
+            }
+        }
+
+        override fun handleOriginalCameraImage(image: Bitmap?) {}
+
+        override fun handlePositionData(poseData: Map<SMKitJoint, PointF>?) {
+            Log.d("ViewModel", "poseDate: $poseData")
+        }
+
+        override fun handleSessionErrors() {}
+    }
 }

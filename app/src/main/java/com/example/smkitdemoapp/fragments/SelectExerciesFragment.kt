@@ -33,22 +33,32 @@ class SelectExerciesFragment: Fragment() {
     ): View {
         _binding = FragmentSelectExerciesBinding.inflate(inflater, container, false)
 
-        val adapter = SelectExerciseAdapter(exerciseClickEvent).apply {
-            addItems(DemoExercise.allValues)
-        }
-
-        binding.recyclerView.layoutManager = LinearLayoutManager(context)
-        binding.recyclerView.adapter = adapter
-
-        binding.startButton.setOnClickListener {
-            parentFragmentManager.beginTransaction().apply {
-                add(R.id.nav_host_fragment, WorkoutFragment())
-            }.commit()
-        }
-
+        bindViews()
+        viewModel.clearChooices()
         return binding.root
     }
 
+    private fun bindViews() {
+        bindList()
+        setStartClickListener()
+    }
+
+    private fun setStartClickListener() {
+        binding.startButton.setOnClickListener {
+            parentFragmentManager.beginTransaction().apply {
+                add(R.id.nav_host_fragment, WorkoutFragment())
+                addToBackStack(WorkoutFragment::class.java.simpleName)
+            }.commit()
+        }
+    }
+
+    private fun bindList() {
+        val adapter = SelectExerciseAdapter(exerciseClickEvent).apply {
+            addItems(DemoExercise.allValues)
+        }
+        binding.recyclerView.layoutManager = LinearLayoutManager(context)
+        binding.recyclerView.adapter = adapter
+    }
 
 
 }
