@@ -9,10 +9,9 @@ import androidx.camera.core.Preview.SurfaceProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.LifecycleOwner
+import com.example.smkitdemoapp.R
 import com.example.smkitdemoapp.databinding.FragmentWorkoutBinding
 import com.example.smkitdemoapp.viewModels.ActivityViewModel
-import com.sency.smkit.SMKit
-import com.sency.smkit.listener.ConfigurationResult
 
 class WorkoutFragment: Fragment() {
     private var _binding: FragmentWorkoutBinding? = null
@@ -35,7 +34,8 @@ class WorkoutFragment: Fragment() {
     }
 
     private fun setObservers() {
-        viewModel.state.observe(viewLifecycleOwner) { state ->
+        viewModel.configureState.observe(viewLifecycleOwner) { state ->
+            if(state == null) return@observe
             when (state.configure) {
                 false -> Toast.makeText(
                     binding.root.context,
@@ -59,6 +59,24 @@ class WorkoutFragment: Fragment() {
         viewModel.exerciseState.observe(viewLifecycleOwner) { state ->
             binding.exerciseNameView.text = state.exerciseName
         }
+        viewModel.sessionState.observe(viewLifecycleOwner) { state ->
+            if(state == null) return@observe
+            when(state.sessionRunning) {
+                true -> {
+                    binding.playView.isEnabled = true
+                    binding.pauseView.isEnabled = true
+                    binding.stopView.isEnabled = true
+                }
+                false -> {
+                    binding.playView.isEnabled = false
+                    binding.pauseView.isEnabled = false
+                    binding.stopView.isEnabled = false
+                    parentFragmentManager.beginTransaction().apply {
+                        add(R.id.nav_host_fragment, SelectExerciesFragment())
+                    }.commit()
+                }
+            }
+        }
     }
 
     private fun setClickListeners() {
@@ -67,17 +85,21 @@ class WorkoutFragment: Fragment() {
                 viewModel.onPause()
                 pauseView.visibility = View.INVISIBLE
                 playView.visibility = View.VISIBLE
+                repCounterView.visibility = View.INVISIBLE
+                repCounterView.text = "0"
             }
             playView.setOnClickListener {
                 viewModel.onStart()
                 pauseView.visibility = View.VISIBLE
                 playView.visibility = View.INVISIBLE
+                repCounterView.visibility = View.VISIBLE
             }
             stopView.setOnClickListener {
                 viewModel.onStop()
                 pauseView.visibility = View.INVISIBLE
                 playView.visibility = View.INVISIBLE
                 stopView.visibility = View.INVISIBLE
+                repCounterView.visibility = View.INVISIBLE
             }
         }
     }

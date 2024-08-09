@@ -4,8 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.PointF
 import android.util.Log
-import android.view.View
-import android.widget.Toast
 import androidx.camera.core.Preview
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
@@ -13,10 +11,10 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.smkitdemoapp.models.DemoExercise
 import com.example.smkitdemoapp.models.ExerciseState
-import com.example.smkitdemoapp.models.State
+import com.example.smkitdemoapp.models.ConfigureState
+import com.example.smkitdemoapp.models.SessionState
 import com.sency.smkit.SMKit
 import com.sency.smkit.listener.ConfigurationResult
-import com.sency.smkit.listener.DetectionDataListener
 import com.sency.smkit.listener.SMKitSessionListener
 import com.sency.smkit.model.FrameInfo
 import com.sency.smkit.model.SMKitJoint
@@ -27,8 +25,11 @@ class ActivityViewModel: ViewModel() {
     private val exerciseList = mutableListOf<DemoExercise>()
     private var smKit: SMKit? = null
 
-    private val _state = MutableLiveData(initState())
-    val state: LiveData<State> get() = _state
+    private val _configureState = MutableLiveData<ConfigureState?>(null)
+    val configureState: LiveData<ConfigureState?> get() = _configureState
+
+    private val _sessionState = MutableLiveData<SessionState?>(null)
+    val sessionState: LiveData<SessionState?> get() = _sessionState
 
     private val _exerciseState = MutableLiveData(initExerciseState())
     val exerciseState: LiveData<ExerciseState> get() = _exerciseState
@@ -42,13 +43,13 @@ class ActivityViewModel: ViewModel() {
 
     private val configureListener = object: ConfigurationResult {
         override fun onFailure() {
-            val state = _state.value
-            _state.postValue(state?.copy(configure = false))
+            val state = _configureState.value ?: initState()
+            _configureState.postValue(state.copy(configure = false))
         }
 
         override fun onSuccess() {
-            val state = _state.value
-            _state.postValue(state?.copy(configure = true))
+            val state = _configureState.value ?: initState()
+            _configureState.postValue(state.copy(configure = true))
             val exerciseState = _exerciseState.value
             val name = exerciseList[0].name
             _exerciseState.postValue(exerciseState?.copy(exerciseIndex = 0, exerciseName = name))
@@ -86,39 +87,41 @@ class ActivityViewModel: ViewModel() {
         Log.d("ViewModel", "onPause: $exerciseInfo")
         val exerciseState = exerciseState.value
         val newIndex = (exerciseState?.exerciseIndex ?: 0) + 1
+        if (newIndex == exerciseList.size) {
+            onStop()
+            return
+        }
         val newName = exerciseList[newIndex].name
-        _exerciseState.postValue(exerciseState?.copy(exerciseIndex = newIndex, exerciseName = newName))
+        _exerciseState.postValue(exerciseState?.copy(exerciseIndex = newIndex, exerciseName = newName, exerciseRunning = false))
     }
 
     fun onStart() {
         val exerciseState = exerciseState.value
         val index = exerciseState?.exerciseIndex ?: 0
-        Log.d("ViewModel", "onStart: $index")
-        if (index == exerciseList.size) {
-            onStop()
-            return
-        }
         val exercise = exerciseList[index]
         smKit?.startDetection(exercise.name)
-        _exerciseState.postValue(exerciseState?.copy(exerciseIndex = index, exerciseName = exercise.name))
+        _exerciseState.postValue(exerciseState?.copy(exerciseIndex = index, exerciseName = exercise.name, exerciseRunning = true))
     }
 
     fun onStop() {
         val resultData = smKit?.stopSession()
         Log.d("ViewModel", "onStop: $resultData")
-        _exerciseState.value = exerciseState.value?.copy(exerciseIndex = 0, exerciseName = "")
+        _exerciseState.value = exerciseState.value?.copy(exerciseIndex = 0, exerciseName = "", exerciseRunning = false)
+        _sessionState.value = SessionState(sessionRunning = false)
     }
 
     fun startSession(lifecycleOwner: LifecycleOwner, surfaceProvider: Preview.SurfaceProvider) {
         smKit?.startSession(lifecycleOwner, surfaceProvider)
+        _sessionState.value = SessionState(sessionRunning = true)
     }
 
-    private fun initState() = State(
+    private fun initState() = ConfigureState(
         configure = false,
     )
 
     private fun initExerciseState() = ExerciseState(
         exerciseIndex = 0,
         exerciseName = "",
+        exerciseRunning = false
     )
 }

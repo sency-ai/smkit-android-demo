@@ -43,7 +43,6 @@ class SelectExerciesFragment: Fragment() {
         binding.startButton.setOnClickListener {
             parentFragmentManager.beginTransaction().apply {
                 add(R.id.nav_host_fragment, WorkoutFragment())
-                addToBackStack(WorkoutFragment::class.java.simpleName)
             }.commit()
         }
 
