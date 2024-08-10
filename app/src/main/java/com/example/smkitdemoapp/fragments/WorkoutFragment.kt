@@ -114,12 +114,15 @@ class WorkoutFragment: Fragment() {
             Idle -> {
                 binding.exerciseNameView.text = ""
                 binding.pauseView.hide()
+                binding.repCounterView.hide()
                 binding.playView.show()
             }
             is Playing -> {
                 binding.exerciseNameView.text = state.exerciseName
+                binding.repCounterView.text = state.repCounter.toString()
                 binding.playView.hide()
                 binding.pauseView.show()
+                binding.repCounterView.show()
             }
         }
     }

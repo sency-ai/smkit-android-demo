@@ -142,7 +142,7 @@ class ActivityViewModel: ViewModel() {
             if (movementData?.didFinishMovement != true) return
             val exercise = exerciseState.value
             if (exercise is Playing) {
-                exercise.countRep()
+                _exerciseState.postValue(exercise.copy(repCounter = exercise.repCounter + 1))
             }
         }
 
