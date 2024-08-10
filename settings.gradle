@@ -16,10 +16,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        mavenLocal()
-//        maven {
-//            url "https://artifacts.sency.ai/artifactory/debug"
-//        }
+        maven {
+            url "https://artifacts.sency.ai/artifactory/debug"
+        }
     }
 }
 
