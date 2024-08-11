@@ -39,7 +39,7 @@ android {
 }
 
 dependencies {
-    implementation "com.sency.smkit:smkit:rc0.1.7.0"
+    implementation "com.sency.smkit:smkit:0.1.7"
 
     implementation "androidx.constraintlayout:constraintlayout:2.1.4"
 
