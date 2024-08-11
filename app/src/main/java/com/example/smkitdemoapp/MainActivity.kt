@@ -11,6 +11,7 @@ import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.example.smkitdemoapp.databinding.MainActivityBinding
+import com.example.smkitdemoapp.fragments.ConfigureFragment
 import com.example.smkitdemoapp.fragments.SelectExerciesFragment
 import com.example.smkitdemoapp.fragments.WorkoutFragment
 import com.example.smkitdemoapp.viewModels.ActivityViewModel
@@ -37,7 +38,7 @@ class MainActivity : FragmentActivity() {
 
     private fun navigateToWorkout() {
         supportFragmentManager.beginTransaction().apply {
-            replace(R.id.nav_host_fragment, SelectExerciesFragment())
+            replace(R.id.nav_host_fragment, ConfigureFragment())
         }.commit()
     }
 

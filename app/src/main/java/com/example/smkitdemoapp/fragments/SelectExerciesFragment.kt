@@ -25,6 +25,9 @@ class SelectExerciesFragment: Fragment() {
             viewModel.addExercise(exercise)
         }
     }
+    private val adapter = SelectExerciseAdapter(exerciseClickEvent).apply {
+        addItems(DemoExercise.allValues)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -41,6 +44,14 @@ class SelectExerciesFragment: Fragment() {
     private fun bindViews() {
         bindList()
         setStartClickListener()
+        viewModel.exerciseListSIze.observe(viewLifecycleOwner) { size ->
+            binding.startButton.isEnabled = size != 0
+            binding.headerCounter.text = size.toString()
+        }
+        binding.clearButton.setOnClickListener {
+            viewModel.clearExerciseList()
+            adapter.clearChooices()
+        }
     }
 
     private fun setStartClickListener() {
@@ -53,9 +64,6 @@ class SelectExerciesFragment: Fragment() {
     }
 
     private fun bindList() {
-        val adapter = SelectExerciseAdapter(exerciseClickEvent).apply {
-            addItems(DemoExercise.allValues)
-        }
         binding.recyclerView.layoutManager = LinearLayoutManager(context)
         binding.recyclerView.adapter = adapter
     }

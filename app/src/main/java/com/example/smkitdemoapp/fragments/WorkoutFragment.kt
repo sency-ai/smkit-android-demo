@@ -49,12 +49,8 @@ class WorkoutFragment: Fragment() {
         _binding = FragmentWorkoutBinding.inflate(inflater, container, false)
         setObservers()
         setClickListeners()
+        viewModel.startSession(viewLifecycleOwner, binding.previewView.surfaceProvider)
         return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        viewModel.configure(binding.root.context)
     }
 
     private fun setClickListeners() {
@@ -71,14 +67,10 @@ class WorkoutFragment: Fragment() {
                 viewModel.stopSession()
                 setPlayerViewsStopState()
             }
-            startSessionButton.setOnClickListener {
-                viewModel.startSession(viewLifecycleOwner, previewView.surfaceProvider)
-            }
         }
     }
 
     private fun setObservers() {
-        observeConfigureState()
         observeExerciseState()
         observeSessionState()
         observeSessionEvents()
@@ -90,14 +82,8 @@ class WorkoutFragment: Fragment() {
 
     private fun handleSessionState(sessionState: SessionState) {
         when (sessionState) {
-            Ready -> {
-                showSessionButton()
-                hideMediaPlayer()
-            }
-            Running -> {
-                showMediaPlayer()
-                hideSessionButton()
-            }
+            Ready -> hideMediaPlayer()
+            Running -> showMediaPlayer()
             Stopped -> {
                 hideMediaPlayer()
                 navigateToSelectionPage()
@@ -137,58 +123,8 @@ class WorkoutFragment: Fragment() {
         }
     }
 
-    private fun observeConfigureState() {
-        viewModel.configureState.filterNotNull().onEach(::handleConfigureState).launchIn(
-            CoroutineScope(Dispatchers.Main)
-        )
-    }
-
-    private fun handleConfigureState(state: ConfigureState) {
-        when (state) {
-            Failed -> showFailureMessage()
-            Loading -> showProgressBar()
-            Passed -> {
-                showPassedMessage()
-                hideProgressBar()
-                showSessionButton()
-            }
-        }
-    }
-
-    private fun showSessionButton() {
-        binding.startSessionButton.show()
-    }
-
-    private fun hideSessionButton() {
-        binding.startSessionButton.hide()
-    }
-
     private fun setRepCounterNumber(repNumber: Int) {
         binding.repCounterView.text = repNumber.toString()
-    }
-
-    private fun hideProgressBar() {
-        binding.progressBar.visibility = View.GONE
-    }
-
-    private fun showPassedMessage() {
-        Toast.makeText(
-            binding.root.context,
-            "configure Success",
-            Toast.LENGTH_SHORT
-        ).show()
-    }
-
-    private fun showFailureMessage() {
-        Toast.makeText(
-            binding.root.context,
-            "Failed to configure",
-            Toast.LENGTH_SHORT
-        ).show()
-    }
-
-    private fun showProgressBar() {
-        binding.progressBar.visibility = View.VISIBLE
     }
 
     private fun showMediaPlayer() {
@@ -212,7 +148,7 @@ class WorkoutFragment: Fragment() {
 
     private fun navigateToSelectionPage() {
         parentFragmentManager.beginTransaction().apply {
-            replace(R.id.nav_host_fragment, SelectExerciesFragment())
+            replace(R.id.nav_host_fragment, ResultFragment())
         }.commit()
     }
 
