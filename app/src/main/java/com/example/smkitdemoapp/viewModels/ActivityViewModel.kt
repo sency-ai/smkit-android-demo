@@ -146,8 +146,6 @@ class ActivityViewModel: ViewModel() {
             }
         }
 
-        override fun handleOriginalCameraImage(image: Bitmap?) {}
-
         override fun handlePositionData(poseData: Map<SMKitJoint, PointF>?) {
             Log.d("ViewModel", "poseDate: $poseData")
         }
