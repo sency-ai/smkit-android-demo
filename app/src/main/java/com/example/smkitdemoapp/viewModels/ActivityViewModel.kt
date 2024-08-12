@@ -39,6 +39,9 @@ class ActivityViewModel: ViewModel() {
     private val exerciseList = mutableListOf<DemoExercise>()
     private var smKit: SMKit? = null
 
+    private val _exerciseListSize = MutableLiveData(exerciseList.size)
+    val exerciseListSIze: LiveData<Int> get() = _exerciseListSize
+
     private val _sessionEvents = MutableLiveData<SessionEvent>()
     val sessionEvents: LiveData<SessionEvent> get() = _sessionEvents
 
@@ -53,6 +56,12 @@ class ActivityViewModel: ViewModel() {
 
     fun addExercise(exercise: DemoExercise) {
         exerciseList.add(exercise)
+        _exerciseListSize.postValue(exerciseList.size)
+    }
+
+    fun clearExerciseList() {
+        exerciseList.clear()
+        _exerciseListSize.postValue(exerciseList.size)
     }
 
     fun configure(context: Context) {
@@ -114,8 +123,10 @@ class ActivityViewModel: ViewModel() {
         _sessionState.value = Stopped
     }
 
+    var detectionSessionResultData: DetectionSessionResultData? = null
     private fun logSessionResults(results: DetectionSessionResultData) {
         Log.d("ViewModel", "Session Results: $results")
+        detectionSessionResultData = results
     }
 
     fun clearChooices() {

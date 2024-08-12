@@ -2,6 +2,7 @@ package com.example.smkitdemoapp.adapter
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.example.smkitdemoapp.databinding.ExerciseItemBinding
 import com.example.smkitdemoapp.models.DemoExercise
@@ -21,6 +22,13 @@ class SelectExerciseAdapter(
         this.list.addAll(list)
     }
 
+    fun clearChooices() {
+        list.forEach { exercise ->
+            exercise.count = 0
+        }
+         notifyItemRangeChanged(0, list.size - 1)
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ExerciseItemBinding.inflate(LayoutInflater.from(parent.context))
         return ViewHolder(binding, exercise)
@@ -37,15 +45,15 @@ class SelectExerciseAdapter(
         private val exerciseEvent: ExerciseClickEvent
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(exercise: DemoExercise) {
+            binding.exerciseName.text = exercise.name
+            binding.counter.text = exercise.count.toString()
+
             binding.root.setOnClickListener {
-                var count = binding.counter.text.toString().toIntOrNull()
-                if (count != null) {
-                    count += 1
-                    binding.counter.text = count.toString()
-                }
+                val count = exercise.count + 1
+                binding.counter.text = count.toString()
+                exercise.count = count
                 exerciseEvent.exercise(exercise)
             }
-            binding.exerciseName.text = exercise.name
         }
     }
 }
