@@ -43,7 +43,8 @@ class ResultFragment: Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        activityViewModel.detectionSessionResultData?.let { data ->
+        activityViewModel.resultData.observe(viewLifecycleOwner) { data ->
+            if(data == null) return@observe
             val gson = GsonBuilder().setPrettyPrinting().create()
             val jsonString = gson.toJson(data)
             binding.resultsText.text = jsonString
