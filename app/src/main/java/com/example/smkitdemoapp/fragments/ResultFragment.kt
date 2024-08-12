@@ -14,6 +14,7 @@ import com.example.smkitdemoapp.R
 import com.example.smkitdemoapp.databinding.FragmentResultBinding
 import com.example.smkitdemoapp.viewModels.ActivityViewModel
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 
 class ResultFragment: Fragment() {
 
@@ -43,7 +44,7 @@ class ResultFragment: Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         activityViewModel.detectionSessionResultData?.let { data ->
-            val gson = Gson()
+            val gson = GsonBuilder().setPrettyPrinting().create()
             val jsonString = gson.toJson(data)
             binding.resultsText.text = jsonString
         }
