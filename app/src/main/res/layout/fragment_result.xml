@@ -43,12 +43,18 @@
         android:background="@drawable/rounded_container"
         >
 
-        <TextView
-            android:id="@+id/results_text"
+        <ScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:text="bla bla bla bla"
-            />
+            android:layout_weight="1">
+            <TextView
+                android:id="@+id/results_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="bla bla bla bla"
+                />
+
+        </ScrollView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

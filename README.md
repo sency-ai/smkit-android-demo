@@ -13,7 +13,13 @@
 <a name="inst"></a>
 ## 1. Installation
 
-### Gradle Dependencies
+### Gradle
+Latest available version of the SMKit:
+
+| Project | Version |
+|---------|:-------:|
+| smkit   |  0.1.7  |
+
 In your project's dependencies source block please add our SDK artifactory endpoint
 ```groovy
 repositories {
@@ -35,7 +41,7 @@ packagingOptions {
 And Finally import `smkit` to your project
 ```groovy
 dependencies {
-    implementation "com.sency.smkit:smkit:rc0.1.7.0"
+    implementation "com.sency.smkit:smkit:$latest_version"
 }
 ```
 
@@ -241,8 +247,7 @@ smKit.observeBodyCalibrationData().onEachLaunch { state: BodyCalibrationState ->
 | startTime           | `String`                                                     | The start time of the session session in "YYYY-MM-dd HH:mm:ss.SSSZ" format.                                 |
 | endTime             | `String`                                                     | The end time of the session session in "YYYY-MM-dd HH:mm:ss.SSSZ" format.                                   |
 
-
-#### `Joint`
+#### `SMKitJoint`
 | Name                |
 |---------------------|
 | Nose                |
@@ -273,23 +278,7 @@ smKit.observeBodyCalibrationData().onEachLaunch { state: BodyCalibrationState ->
 | LHeel               |
 | RHeel               |
 
-### `SMPhoneCalibrationInfo` <a name="SMPhoneCalibrationInfo"></a>
-| Type                | Format                                                       | Description                                                                                                  |
-|---------------------|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
-| YZTiltAngle         | `Float`                                                      | The current Y angle.                                                                                         |
-| YZTiltAngle         | `Float`                                                      | The current X angle.                                                                                         |
-| YZAngleRange        | `Range<Float>`                                               | The currect Y range.                                                                                         |
-| XYAngleRange        | `Range<Float>`                                               | The currect X range.                                                                                         |
-| isYZTiltAngleInRange| `Bool`                                                       | Will be true if Y angle is in range.                                                                         |
-| isXYTiltAngleInRange| `Bool`                                                       | Will be true if X angle is in range.                                                                         |
-
-### `PhonePositionMode` <a name ="PhonePositionMode)"></a>
-| Type                |
-|---------------------|
-| Floor               |
-| Elevated            |
-
-### `ExerciseTypeBr` <a name ="ExerciseTypeBr)"></a>
+### `ExerciseType` <a name ="ExerciseType)"></a>
 | Type                |
 |---------------------|
 | Dynamic             |
