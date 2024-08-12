@@ -9,6 +9,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.smkitdemoapp.events.SessionEvent
 import com.example.smkitdemoapp.models.DemoExercise
 import com.example.smkitdemoapp.states.session.SessionState
@@ -30,8 +31,10 @@ import com.sency.smkit.model.DetectionSessionResultData
 import com.sency.smkit.model.FrameInfo
 import com.sency.smkit.model.SMKitJoint
 import com.sency.smkit.model.SMKitMovementData
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlin.jvm.Throws
 
 class ActivityViewModel: ViewModel() {
@@ -53,6 +56,9 @@ class ActivityViewModel: ViewModel() {
 
     private val _exerciseState = MutableLiveData<ExerciseState>(Idle)
     val exerciseState: LiveData<ExerciseState> get() = _exerciseState
+
+    private val _resultData = MutableLiveData<DetectionSessionResultData?>(null)
+    val resultData: LiveData<DetectionSessionResultData?> get() = _resultData
 
     fun addExercise(exercise: DemoExercise) {
         exerciseList.add(exercise)
@@ -123,10 +129,12 @@ class ActivityViewModel: ViewModel() {
         _sessionState.value = Stopped
     }
 
-    var detectionSessionResultData: DetectionSessionResultData? = null
+
     private fun logSessionResults(results: DetectionSessionResultData) {
         Log.d("ViewModel", "Session Results: $results")
-        detectionSessionResultData = results
+        viewModelScope.launch(Dispatchers.Default) {
+            _resultData.postValue(results)
+        }
     }
 
     fun clearChooices() {

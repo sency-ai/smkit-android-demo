@@ -11,8 +11,8 @@ android {
         applicationId "com.example.smkitdemoapp"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "0.1.7 - SMKit"
+        versionCode 2
+        versionName "0.1.7"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
