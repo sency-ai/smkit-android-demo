@@ -34,7 +34,7 @@ class ResultFragment: Fragment() {
         }
         binding.startoverButton.setOnClickListener {
             parentFragmentManager.beginTransaction().apply {
-                replace(R.id.nav_host_fragment, SelectExerciesFragment())
+                replace(R.id.nav_host_fragment, WelcomeFragment())
             }.commit()
         }
         return binding.root

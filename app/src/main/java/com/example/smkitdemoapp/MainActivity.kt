@@ -10,13 +10,15 @@ import androidx.activity.result.contract.ActivityResultContracts.RequestMultiple
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.commit
 import com.example.smkitdemoapp.databinding.MainActivityBinding
+import com.example.smkitdemoapp.fragments.AssessmentFragment
 import com.example.smkitdemoapp.fragments.ConfigureFragment
-import com.example.smkitdemoapp.fragments.SelectExerciesFragment
+import com.example.smkitdemoapp.fragments.DemoAssessmentStarter
 import com.example.smkitdemoapp.fragments.WorkoutFragment
 import com.example.smkitdemoapp.viewModels.ActivityViewModel
 
-class MainActivity : FragmentActivity() {
+class MainActivity : FragmentActivity(), DemoAssessmentStarter {
 
     private var _binding: MainActivityBinding? = null
     private val binding get() = _binding!!
@@ -37,9 +39,17 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun navigateToWorkout() {
-        supportFragmentManager.beginTransaction().apply {
+        supportFragmentManager.commit {
             replace(R.id.nav_host_fragment, ConfigureFragment())
-        }.commit()
+        }
+    }
+
+    override fun startDemoAssessment() {
+        viewModel.loadDemoAssessmentExercises()
+        supportFragmentManager.commit {
+            replace(R.id.nav_host_fragment, AssessmentFragment())
+            addToBackStack(AssessmentFragment::class.java.simpleName)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

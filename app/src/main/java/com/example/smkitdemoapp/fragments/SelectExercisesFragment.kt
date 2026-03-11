@@ -10,13 +10,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.smkitdemoapp.R
 import com.example.smkitdemoapp.adapter.ExerciseClickEvent
 import com.example.smkitdemoapp.adapter.SelectExerciseAdapter
-import com.example.smkitdemoapp.databinding.FragmentSelectExerciesBinding
+import com.example.smkitdemoapp.databinding.FragmentSelectExercisesBinding
 import com.example.smkitdemoapp.models.DemoExercise
 import com.example.smkitdemoapp.viewModels.ActivityViewModel
 
-class SelectExerciesFragment: Fragment() {
+class SelectExercisesFragment : Fragment() {
 
-    private var _binding: FragmentSelectExerciesBinding? = null
+    private var _binding: FragmentSelectExercisesBinding? = null
     private val binding get() = _binding!!
     private val viewModel: ActivityViewModel by activityViewModels()
 
@@ -26,7 +26,7 @@ class SelectExerciesFragment: Fragment() {
         }
     }
     private val adapter = SelectExerciseAdapter(exerciseClickEvent).apply {
-        addItems(DemoExercise.allValues)
+        addItems(DemoExercise.ios2DExercises)
     }
 
     override fun onCreateView(
@@ -34,28 +34,29 @@ class SelectExerciesFragment: Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentSelectExerciesBinding.inflate(inflater, container, false)
+        _binding = FragmentSelectExercisesBinding.inflate(inflater, container, false)
 
         bindViews()
-        viewModel.clearChooices()
+        viewModel.clearChoices()
         return binding.root
     }
 
     private fun bindViews() {
         bindList()
         setStartClickListener()
-        viewModel.exerciseListSIze.observe(viewLifecycleOwner) { size ->
+        viewModel.exerciseListSize.observe(viewLifecycleOwner) { size ->
             binding.startButton.isEnabled = size != 0
             binding.headerCounter.text = size.toString()
         }
         binding.clearButton.setOnClickListener {
             viewModel.clearExerciseList()
-            adapter.clearChooices()
+            adapter.clearChoices()
         }
     }
 
     private fun setStartClickListener() {
         binding.startButton.setOnClickListener {
+            viewModel.setShowSkeleton(binding.showSkeletonSwitch.isChecked)
             parentFragmentManager.beginTransaction().apply {
                 add(R.id.nav_host_fragment, WorkoutFragment())
                 addToBackStack(WorkoutFragment::class.java.simpleName)
@@ -67,6 +68,4 @@ class SelectExerciesFragment: Fragment() {
         binding.recyclerView.layoutManager = LinearLayoutManager(context)
         binding.recyclerView.adapter = adapter
     }
-
-
 }

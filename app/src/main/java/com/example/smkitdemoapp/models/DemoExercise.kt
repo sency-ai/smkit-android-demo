@@ -49,6 +49,8 @@ enum class DemoExercise(var count: Int = 0) {
     LungeSideStaticRight,
     LungeSideStaticLeft,
     AnklesMobility,
+    AnkleMobilityLeft,
+    AnkleMobilityRight,
     HamstringMobility,
     InnerThighMobility,
     HipExternalRotationGlutesMobility,
@@ -59,5 +61,19 @@ enum class DemoExercise(var count: Int = 0) {
 
     companion object {
         val allValues: List<DemoExercise> = values().toList()
+
+        /** Exercises shown in 2D session, matching the iOS demo list. */
+        val ios2DExercises: List<DemoExercise> = listOf(
+            StandingSideBendRight,
+            StandingSideBendLeft,
+            JeffersonCurl,
+            SquatRegular,
+            SquatRegularOverheadStatic,
+            PlankHighStatic,
+            StandingKneeRaiseRight,
+            StandingKneeRaiseLeft,
+            AnkleMobilityLeft,
+            AnkleMobilityRight
+        )
     }
 }
