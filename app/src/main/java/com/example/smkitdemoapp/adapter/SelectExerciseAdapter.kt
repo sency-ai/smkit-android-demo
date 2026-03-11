@@ -22,11 +22,11 @@ class SelectExerciseAdapter(
         this.list.addAll(list)
     }
 
-    fun clearChooices() {
+    fun clearChoices() {
         list.forEach { exercise ->
             exercise.count = 0
         }
-         notifyItemRangeChanged(0, list.size - 1)
+        if (list.isNotEmpty()) notifyItemRangeChanged(0, list.size)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {

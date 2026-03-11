@@ -3,16 +3,24 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(new FileInputStream(localPropertiesFile))
+}
+
 android {
     namespace 'com.example.smkitdemoapp'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.example.smkitdemoapp"
-        minSdk 24
-        targetSdk 34
+        minSdk 26
+        targetSdk 35
         versionCode 2
-        versionName "0.1.7"
+        versionName "1.5.1"
+
+        buildConfigField "String", "sdk_auth_key", "\"${localProperties.getProperty('sdk_auth_key', '')}\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -24,14 +32,15 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '17'
     }
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
     packagingOptions {
         pickFirst '**/*.so'
@@ -39,7 +48,7 @@ android {
 }
 
 dependencies {
-    implementation "com.sency.smkit:smkit:0.1.7"
+    implementation "com.sency.smkit:smkit:1.5.1"
 
     implementation "androidx.constraintlayout:constraintlayout:2.1.4"
 

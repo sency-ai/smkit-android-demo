@@ -1,11 +1,11 @@
 package com.example.smkitdemoapp.fragments
 
+import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
+import android.widget.TextView
 import androidx.camera.core.Preview.SurfaceProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -47,14 +47,17 @@ class WorkoutFragment: Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentWorkoutBinding.inflate(inflater, container, false)
+        viewModel.startSession(viewLifecycleOwner, binding.previewView.surfaceProvider)
         setObservers()
         setClickListeners()
-        viewModel.startSession(viewLifecycleOwner, binding.previewView.surfaceProvider)
         return binding.root
     }
 
     private fun setClickListeners() {
         with(binding) {
+            nextView.setOnClickListener {
+                viewModel.nextExercise()
+            }
             pauseView.setOnClickListener {
                 viewModel.pauseExercise()
                 setPlayerViewsPauseState()
@@ -74,6 +77,71 @@ class WorkoutFragment: Fragment() {
         observeExerciseState()
         observeSessionState()
         observeSessionEvents()
+        observePoseAndFrame()
+        observeFeedbacks()
+        observeIsShallow()
+        observeShowSkeleton()
+        observeRomAndRepCounter()
+    }
+
+    private fun observeRomAndRepCounter() {
+        val updateRomVisibility = {
+            val min = viewModel.romRangeMin.value
+            val max = viewModel.romRangeMax.value
+            val hasRange = min != null && max != null
+            binding.romGauge.visibility = if (hasRange) View.VISIBLE else View.GONE
+            if (hasRange) {
+                binding.romGauge.rangeMin = min!!
+                binding.romGauge.rangeMax = max!!
+            }
+        }
+        viewModel.romRangeMin.observe(viewLifecycleOwner) { updateRomVisibility() }
+        viewModel.romRangeMax.observe(viewLifecycleOwner) { updateRomVisibility() }
+        viewModel.currentRomValue.observe(viewLifecycleOwner) { binding.romGauge.value = it }
+        viewModel.isInPosition.observe(viewLifecycleOwner) { binding.romGauge.isInPosition = it }
+        viewModel.isDynamicExercise.observe(viewLifecycleOwner) { isDynamic ->
+            if (viewModel.exerciseState.value is Playing) {
+                binding.repCounterView.visibility = if (isDynamic) View.VISIBLE else View.INVISIBLE
+            }
+        }
+    }
+
+    private fun observePoseAndFrame() {
+        viewModel.poseData.observe(viewLifecycleOwner) { pose ->
+            binding.skeletonOverlay.poseData = pose
+        }
+        viewModel.frameInfo.observe(viewLifecycleOwner) { info ->
+            if (info != null) {
+                binding.skeletonOverlay.videoWidth = info.width
+                binding.skeletonOverlay.videoHeight = info.height
+                binding.skeletonOverlay.isImageFlipped = info.isImageFlipped
+            }
+        }
+    }
+
+    private fun observeFeedbacks() {
+        viewModel.feedbacks.observe(viewLifecycleOwner) { list ->
+            binding.feedbacksContainer.removeAllViews()
+            for (text in list) {
+                binding.feedbacksContainer.addView(TextView(requireContext()).apply {
+                    setTextColor(Color.WHITE)
+                    setText(text)
+                })
+            }
+        }
+    }
+
+    private fun observeIsShallow() {
+        viewModel.isShallowRep.observe(viewLifecycleOwner) { shallow ->
+            binding.isShallowView.visibility = if (shallow != null) View.VISIBLE else View.GONE
+            binding.isShallowView.text = "isShallow: $shallow"
+        }
+    }
+
+    private fun observeShowSkeleton() {
+        viewModel.showSkeleton.observe(viewLifecycleOwner) { show ->
+            binding.skeletonOverlay.visibility = if (show) View.VISIBLE else View.GONE
+        }
     }
 
     private fun observeSessionState() {
@@ -100,6 +168,7 @@ class WorkoutFragment: Fragment() {
             Idle -> {
                 binding.exerciseNameView.text = ""
                 binding.pauseView.hide()
+                binding.nextView.hide()
                 binding.repCounterView.hide()
                 binding.playView.show()
             }
@@ -108,7 +177,8 @@ class WorkoutFragment: Fragment() {
                 binding.repCounterView.text = state.repCounter.toString()
                 binding.playView.hide()
                 binding.pauseView.show()
-                binding.repCounterView.show()
+                binding.nextView.show()
+                binding.repCounterView.visibility = if (viewModel.isDynamicExercise.value == true) View.VISIBLE else View.INVISIBLE
             }
         }
     }
@@ -135,6 +205,8 @@ class WorkoutFragment: Fragment() {
         binding.playView.hide()
         binding.pauseView.hide()
         binding.stopView.hide()
+        binding.nextView.hide()
+        binding.repCounterView.hide()
     }
 
     private fun View.hide() {
@@ -156,6 +228,7 @@ class WorkoutFragment: Fragment() {
         pauseView.visibility = View.INVISIBLE
         playView.visibility = View.INVISIBLE
         stopView.visibility = View.INVISIBLE
+        nextView.visibility = View.INVISIBLE
         repCounterView.visibility = View.INVISIBLE
         previewView.visibility = View.INVISIBLE
     }
@@ -164,7 +237,8 @@ class WorkoutFragment: Fragment() {
         pauseView.visibility = View.VISIBLE
         playView.visibility = View.INVISIBLE
         stopView.visibility = View.VISIBLE
-        repCounterView.visibility = View.INVISIBLE
+        nextView.visibility = View.VISIBLE
+        repCounterView.visibility = View.VISIBLE
     }
 
     private fun FragmentWorkoutBinding.setPlayerViewsPauseState() {
@@ -172,5 +246,6 @@ class WorkoutFragment: Fragment() {
         repCounterView.visibility = View.INVISIBLE
         playView.visibility = View.VISIBLE
         stopView.visibility = View.VISIBLE
+        nextView.visibility = View.VISIBLE
     }
 }

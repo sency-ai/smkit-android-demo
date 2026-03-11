@@ -68,7 +68,7 @@ class ConfigureFragment: Fragment() {
 
     private fun navigateToSelectionPage() {
         parentFragmentManager.beginTransaction().apply {
-            replace(R.id.nav_host_fragment, SelectExerciesFragment())
+            replace(R.id.nav_host_fragment, WelcomeFragment())
         }.commit()
     }
 

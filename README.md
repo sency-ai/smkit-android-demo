@@ -2,6 +2,13 @@
 
 # [smkit-android-demo](https://github.com/sency-ai/smkit-android-demo)
 
+Demo app for **SMKit** (core SDK only; no SMKitUI). Aligned with the iOS demo: Welcome screen with Start 2D Session, Start 3D Session (stub), and Demo Assessment (fixed exercise list using SMKit only).
+
+## Features
+- **Start 2D Session**: Pick exercises, run a workout with camera and rep counting, view session result JSON.
+- **Demo Assessment**: Runs a fixed list (OverheadMobility, SquatRegularOverheadStatic, JeffersonCurl, StandingSideBendRight, StandingSideBendLeft) with the same workout/result flow.
+- **Start 3D Session**: Placeholder (3D not yet available in the public SDK).
+
 ## Table of contents
 1. [ Installation ](#inst)
 2. [ Setup ](#setup)
@@ -18,7 +25,7 @@ Latest available version of the SMKit:
 
 | Project | Version |
 |---------|:-------:|
-| smkit   |  0.1.7  |
+| smkit   |  1.5.1  |
 
 In your project's dependencies source block please add our SDK artifactory endpoint
 ```groovy
@@ -47,6 +54,15 @@ dependencies {
 
 <a name="setup"></a>
 ## 2. Setup
+
+### SDK auth key (required to run the app)
+Create a `local.properties` file in the project root (if it does not exist) and add your SDK key:
+```properties
+sdk_auth_key=your_sency_sdk_key_here
+```
+The app reads this via `BuildConfig.sdk_auth_key`. Do not commit `local.properties` with a real key.
+
+### Camera
 Add camera permission and camera feature to `AndroidManifest.xml`
 ```xml
 <uses-permission android:name="android.permission.CAMERA" />
@@ -59,7 +75,7 @@ Add camera permission and camera feature to `AndroidManifest.xml`
 ## 3. Configure
 ```kotlin
 val smKit = SMKit.Builder(context)
-    .authKey("YOUR_AUTH_KEY")
+    .authKey(BuildConfig.sdk_auth_key)  // from local.properties
     .build()
 
 smKit.configure(object: ConfigurationResult {
@@ -96,6 +112,7 @@ smKit?.smKitSessionListener(object : SMKitSessionListener {
     // This function will be called with the user joints location.
     // Please notice the locations of joint are relative to video resolution.
     // FrameInfo object holds the video resolution data.
+    // The skeleton model (standard 28 joints vs extended) is chosen automatically; see SMKitJoint below to detect and branch.
     override fun handlePositionData(poseData: Map<SMKitJoint, PointF>?) {}
     
     // This function will be called if any error occured.
@@ -247,36 +264,19 @@ smKit.observeBodyCalibrationData().onEachLaunch { state: BodyCalibrationState ->
 | startTime           | `String`                                                     | The start time of the session session in "YYYY-MM-dd HH:mm:ss.SSSZ" format.                                 |
 | endTime             | `String`                                                     | The end time of the session session in "YYYY-MM-dd HH:mm:ss.SSSZ" format.                                   |
 
-#### `SMKitJoint`
-| Name                |
-|---------------------|
-| Nose                |
-| Neck                |
-| RShoulder           |
-| RElbow              |
-| RWrist              |
-| LShoulder           |
-| LElbow              |
-| LWrist              |
-| RHip                |
-| RKnee               |
-| RAnkle              |
-| LHip                |
-| LKnee               |
-| LAnkle              |
-| REye                |
-| LEye                |
-| REar                |
-| LEar                |
-| Hip                 |
-| Chest               |
-| Head                |
-| LBigToe             |
-| RBigToe             |
-| LSmallToe           |
-| RSmallToe           |
-| LHeel               |
-| RHeel               |
+#### `SMKitJoint` (skeleton model)
+
+The SDK chooses the skeleton model automatically based on device capability. Your app receives `handlePositionData(poseData: Map<SMKitJoint, PointF>?)`; you can detect which model is in use by checking which keys are present in `poseData`, then branch with a `when` (or switch) on the result.
+
+**Full pose — Standard (28 joints)** — used on newer devices. Complete set of joints in order:
+
+Head, REye, LEye, LEar, REar, Nose, Neck, RShoulder, RElbow, RWrist, LShoulder, LElbow, LWrist, UpperSpine, MiddleSpine1, Hip, RHip, RKnee, RAnkle, RHeel, RBigToe, RSmallToe, LHip, LKnee, LAnkle, LHeel, LBigToe, LSmallToe.
+
+**Full pose — Extended (33 joints)** — used on older devices. Complete set of joints in order:
+
+Nose, LEyeInner, LEye, LEyeOuter, REyeInner, REye, REyeOuter, LEar, REar, LMouth, RMouth, LShoulder, RShoulder, LElbow, RElbow, LWrist, RWrist, LPinky, RPinky, LIndex, RIndex, LThumb, RThumb, LHip, RHip, LKnee, RKnee, LAnkle, RAnkle, LHeel, RHeel, LBigToe, RBigToe.
+
+In code, detect the skeleton type (e.g. extended if any of the extra joints appear in `poseData`) and use a `when (skeletonType)` to handle drawing or processing for each case.
 
 ### `ExerciseType` <a name ="ExerciseType)"></a>
 | Type                |
@@ -285,7 +285,6 @@ smKit.observeBodyCalibrationData().onEachLaunch { state: BodyCalibrationState ->
 | Static              |
 | BodyAssessment      |
 | Mobility            |
-| Highlights          |
 | Other               |
 
 Having issues? [Contact us](mailto:support@sency.ai) and let us know what the problem is.
