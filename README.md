@@ -7,6 +7,8 @@ Demo app for **SMKit** (core SDK only; no SMKitUI). Aligned with the iOS demo: W
 ## Features
 - **Start 2D Session**: Pick exercises, run a workout with camera and rep counting, view session result JSON.
 - **Demo Assessment**: Runs a fixed list (OverheadMobility, SquatRegularOverheadStatic, JeffersonCurl, StandingSideBendRight, StandingSideBendLeft) with the same workout/result flow.
+- **1.6.5 runtime controls**: Toggle default guidance mode, adaptive ROM, phone-movement gating, and switch exercises without recording the current attempt.
+- **Guidance telemetry**: The workout screen displays guidance step, progress, vocal key, current phone position, ROM, and feedback data from `SMKitMovementData`.
 - **Start 3D Session**: Placeholder (3D not yet available in the public SDK).
 
 ## Table of contents
@@ -25,7 +27,7 @@ Latest available version of the SMKit:
 
 | Project | Version |
 |---------|:-------:|
-| smkit   |  1.5.1  |
+| smkit   |  1.6.5  |
 
 In your project's dependencies source block please add our SDK artifactory endpoint
 ```groovy
@@ -83,6 +85,10 @@ smKit.configure(object: ConfigurationResult {
         // Configuration Failed
     }
 
+    override fun onFailure(error: String) {
+        // Configuration Failed with a detailed 1.6.5 error message
+    }
+
     override fun onSuccess() {
         // Configuration Successed
     }
@@ -134,7 +140,8 @@ fun startSession(lifecycleOwner: LifecycleOwner, surfaceProvider: Preview.Surfac
 fun startDetection() {
     try{
         val exerciseName: String = exerciseName() 
-        smKit?.startDetection(exerciseName)
+        val guidanceMode = if (smKit?.exerciseHasDefaultGuidanceMode(exerciseName) == true) true else null
+        smKit?.startDetection(exerciseName, configString = null, guidanceMode = guidanceMode)
     } catch (e: IllegalStateException) {
         stopSession()
     }
@@ -152,6 +159,37 @@ fun stopSession() {
     Log.d(TAG, "Session Results: $results")
 }
 ```
+
+### 4.1 Runtime controls added in 1.6.5
+
+These APIs can be set before detection starts. Some of them can also be updated while detection is running.
+
+```kotlin
+// Built-in guidance mode for supported exercises.
+smKit.setUseDefaultGuidanceMode(true)
+smKit.setGuidanceDebugLogging(BuildConfig.DEBUG)
+val guidanceMode = if (smKit.exerciseHasDefaultGuidanceMode(exerciseName)) true else null
+val (romRange, exerciseType) = smKit.startDetection(exerciseName, null, guidanceMode)
+
+// Adaptive ROM feedback.
+smKit.setAdaptiveRomEnabled(true)
+smKit.setAdaptiveRomStart(0f)
+val activeRange = smKit.getExerciseRange()
+
+// Phone movement gating. Pass true while the hosting app detects that the phone moved.
+smKit.setPhoneMoved(isPhoneMoved = true)
+val phonePosition = smKit.getCurrentPhonePosition()
+
+// Switch to another exercise without saving the current exercise result.
+smKit.switchDetectionWithoutRecording(nextExercise, configString = null, guidanceMode = guidanceMode)
+
+// Guidance audio coordination for apps that play guidance vocals themselves.
+smKit.setGuidanceVocalPlaying(true)
+smKit.endGuidanceMode()
+smKit.resetGuidanceMode()
+```
+
+The demo app exposes these controls in the exercise-selection and workout screens.
 
 ## 5. Body calibration <a name="models"></a>
 
@@ -199,7 +237,22 @@ smKit.observeBodyCalibrationData().onEachLaunch { state: BodyCalibrationState ->
 | detectionConfidence | `Float?`                                                     | The confidence score                                                                                         |
 | feedback            | `[FormFeedbackTypeBr]?`                                      | Array of feedback of the user movment.                                                                       |
 | currentRomValue     | `Float?`                                                     | The current Range Of Motion of the user.                                                                     |
+| guidanceStep        | `GuidanceStep`                                               | Current guidance phase: `None`, `Orient`, `Setup`, `Prepare`, `Action`, or `Hold`.                           |
+| guidanceAdvanceProgress | `Float`                                                  | Progress toward advancing the current guidance step, from 0 to 1.                                            |
+| isGuidanceModeActive | `Bool`                                                      | True while the current detection is running in guidance mode.                                                |
+| guidanceVocalKey    | `String?`                                                    | Vocal asset key requested by guidance mode.                                                                  |
+| requestGuidanceVocalReplay | `Bool`                                                | True when the current guidance vocal should be replayed.                                                     |
 | specialParams       | `[String:Float?]`                                            | Some dynamic exercises will have some special params for example the exercise "Jumps" has "JumpPeakHeight" and "currHeight". |
+
+#### `GuidanceStep`
+| Type    | Description                         |
+|---------|-------------------------------------|
+| None    | Guidance is inactive.               |
+| Orient  | User orientation / camera view.     |
+| Setup   | Stance or setup phase.              |
+| Prepare | Pre-movement preparation.           |
+| Action  | Main movement instruction.          |
+| Hold    | Hold / terminal success phase.      |
 
 #### `SMExerciseInfo`
 | Type                | Format                                                       | Description                                                                                                  |

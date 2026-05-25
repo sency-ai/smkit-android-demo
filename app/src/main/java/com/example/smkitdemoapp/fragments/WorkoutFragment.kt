@@ -58,6 +58,12 @@ class WorkoutFragment: Fragment() {
             nextView.setOnClickListener {
                 viewModel.nextExercise()
             }
+            switchView.setOnClickListener {
+                viewModel.switchToNextExerciseWithoutRecording()
+            }
+            phoneMovedView.setOnClickListener {
+                viewModel.setPhoneMoved(viewModel.phoneMoved.value != true)
+            }
             pauseView.setOnClickListener {
                 viewModel.pauseExercise()
                 setPlayerViewsPauseState()
@@ -82,6 +88,7 @@ class WorkoutFragment: Fragment() {
         observeIsShallow()
         observeShowSkeleton()
         observeRomAndRepCounter()
+        observeReleaseFeatureStatus()
     }
 
     private fun observeRomAndRepCounter() {
@@ -144,6 +151,18 @@ class WorkoutFragment: Fragment() {
         }
     }
 
+    private fun observeReleaseFeatureStatus() {
+        viewModel.guidanceStatus.observe(viewLifecycleOwner) {
+            binding.guidanceStatusView.text = it
+        }
+        viewModel.phonePosition.observe(viewLifecycleOwner) {
+            binding.phonePositionView.text = it
+        }
+        viewModel.phoneMoved.observe(viewLifecycleOwner) { moved ->
+            binding.phoneMovedView.text = if (moved) "Phone Moved" else "Phone OK"
+        }
+    }
+
     private fun observeSessionState() {
         viewModel.sessionState.filterNotNull().onEach(::handleSessionState).launchIn(CoroutineScope(Dispatchers.Main))
     }
@@ -169,6 +188,8 @@ class WorkoutFragment: Fragment() {
                 binding.exerciseNameView.text = ""
                 binding.pauseView.hide()
                 binding.nextView.hide()
+                binding.switchView.hide()
+                binding.phoneMovedView.hide()
                 binding.repCounterView.hide()
                 binding.playView.show()
             }
@@ -178,6 +199,8 @@ class WorkoutFragment: Fragment() {
                 binding.playView.hide()
                 binding.pauseView.show()
                 binding.nextView.show()
+                binding.switchView.show()
+                binding.phoneMovedView.show()
                 binding.repCounterView.visibility = if (viewModel.isDynamicExercise.value == true) View.VISIBLE else View.INVISIBLE
             }
         }
@@ -206,6 +229,8 @@ class WorkoutFragment: Fragment() {
         binding.pauseView.hide()
         binding.stopView.hide()
         binding.nextView.hide()
+        binding.switchView.hide()
+        binding.phoneMovedView.hide()
         binding.repCounterView.hide()
     }
 
@@ -229,6 +254,8 @@ class WorkoutFragment: Fragment() {
         playView.visibility = View.INVISIBLE
         stopView.visibility = View.INVISIBLE
         nextView.visibility = View.INVISIBLE
+        switchView.visibility = View.INVISIBLE
+        phoneMovedView.visibility = View.INVISIBLE
         repCounterView.visibility = View.INVISIBLE
         previewView.visibility = View.INVISIBLE
     }
@@ -238,6 +265,8 @@ class WorkoutFragment: Fragment() {
         playView.visibility = View.INVISIBLE
         stopView.visibility = View.VISIBLE
         nextView.visibility = View.VISIBLE
+        switchView.visibility = View.VISIBLE
+        phoneMovedView.visibility = View.VISIBLE
         repCounterView.visibility = View.VISIBLE
     }
 
@@ -247,5 +276,7 @@ class WorkoutFragment: Fragment() {
         playView.visibility = View.VISIBLE
         stopView.visibility = View.VISIBLE
         nextView.visibility = View.VISIBLE
+        switchView.visibility = View.VISIBLE
+        phoneMovedView.visibility = View.VISIBLE
     }
 }
