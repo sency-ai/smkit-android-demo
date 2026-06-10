@@ -7,7 +7,7 @@ Demo app for **SMKit** (core SDK only; no SMKitUI). Aligned with the iOS demo: W
 ## Features
 - **Start 2D Session**: Pick exercises, run a workout with camera and rep counting, view session result JSON.
 - **Demo Assessment**: Runs a fixed list (OverheadMobility, SquatRegularOverheadStatic, JeffersonCurl, StandingSideBendRight, StandingSideBendLeft) with the same workout/result flow.
-- **1.6.5 runtime controls**: Toggle default guidance mode, adaptive ROM, phone-movement gating, and switch exercises without recording the current attempt.
+- **1.6.6 runtime controls**: Toggle default guidance mode, adaptive ROM, phone-movement gating, and switch exercises without recording the current attempt.
 - **Guidance telemetry**: The workout screen displays guidance step, progress, vocal key, current phone position, ROM, and feedback data from `SMKitMovementData`.
 - **Start 3D Session**: Placeholder (3D not yet available in the public SDK).
 
@@ -27,7 +27,10 @@ Latest available version of the SMKit:
 
 | Project | Version |
 |---------|:-------:|
-| smkit   |  1.6.5  |
+| smkit   |  1.6.6  |
+
+### Version 1.6.6
+- More resilient pose-estimation warmup when configure data is not ready yet.
 
 In your project's dependencies source block please add our SDK artifactory endpoint
 ```groovy
@@ -86,7 +89,7 @@ smKit.configure(object: ConfigurationResult {
     }
 
     override fun onFailure(error: String) {
-        // Configuration Failed with a detailed 1.6.5 error message
+        // Configuration Failed with a detailed error message
     }
 
     override fun onSuccess() {
@@ -160,7 +163,7 @@ fun stopSession() {
 }
 ```
 
-### 4.1 Runtime controls added in 1.6.5
+### 4.1 Runtime controls added in 1.6.5+
 
 These APIs can be set before detection starts. Some of them can also be updated while detection is running.
 
