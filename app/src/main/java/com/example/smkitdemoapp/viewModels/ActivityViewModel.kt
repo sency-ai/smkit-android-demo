@@ -28,18 +28,27 @@ import com.example.smkitdemoapp.states.session.Ready
 import com.example.smkitdemoapp.states.session.Running
 import com.example.smkitdemoapp.states.session.Stopped
 import com.sency.smkit.SMKit
+import com.sency.smkit.PoseModelChoice
 import com.sency.smkit.listener.ConfigurationResult
+import com.sency.smkit.listener.SMKitGuidanceSuggestionListener
 import com.sency.smkit.listener.SMKitSessionListener
 import com.sency.smkit.model.DetectionSessionResultData
 import com.sency.smkit.model.FrameInfo
 import com.sency.smkit.model.SMKitJoint
 import com.sency.smkit.model.SMKitMovementData
 import com.sency.smkit.model.BodyCalibrationState
+import com.sency.smkit.model.SMKitGuidanceSuggestion
+import com.sency.smbase.data.model.DownloadModel
+import com.sency.smbase.nativeclient.model.AlgoPipeResultData
+import com.sency.smbase.nativeclient.model.FormFeedbackType
+import com.sency.smbase.nativeclient.model.RomRange
+import com.sency.smbase.nativeclient.model.SMBaseExerciseType
 import com.example.smkitdemoapp.skeleton.detectSkeletonType
 import com.example.smkitdemoapp.skeleton.SkeletonType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.jvm.Throws
 
@@ -118,6 +127,12 @@ class ActivityViewModel: ViewModel() {
     private val _guidanceStatus = MutableLiveData("Guidance: inactive")
     val guidanceStatus: LiveData<String> get() = _guidanceStatus
 
+    private val _guidanceSuggestion = MutableLiveData("Guidance suggestion: waiting")
+    val guidanceSuggestion: LiveData<String> get() = _guidanceSuggestion
+
+    private val _rawPipelineStatus = MutableLiveData("Raw pipeline: waiting")
+    val rawPipelineStatus: LiveData<String> get() = _rawPipelineStatus
+
     private val _phonePosition = MutableLiveData("Phone position: unknown")
     val phonePosition: LiveData<String> get() = _phonePosition
 
@@ -132,7 +147,11 @@ class ActivityViewModel: ViewModel() {
     val showSkeleton: LiveData<Boolean> get() = _showSkeleton
 
     private var guidanceModeEnabled = false
+    private var guidanceSuggestionEnabled = false
+    private var exerciseViewMonitoringEnabled = false
     private var adaptiveRomEnabled = false
+    private var nativeConfigString: String? = null
+    private var rawPipelineJob: Job? = null
 
     fun setShowSkeleton(show: Boolean) {
         _showSkeleton.value = show
@@ -140,11 +159,42 @@ class ActivityViewModel: ViewModel() {
 
     fun setReleaseFeatureOptions(
         guidanceModeEnabled: Boolean,
+        guidanceSuggestionEnabled: Boolean,
+        exerciseViewMonitoringEnabled: Boolean,
         adaptiveRomEnabled: Boolean,
     ) {
         this.guidanceModeEnabled = guidanceModeEnabled
+        this.guidanceSuggestionEnabled = guidanceSuggestionEnabled
+        this.exerciseViewMonitoringEnabled = exerciseViewMonitoringEnabled
         this.adaptiveRomEnabled = adaptiveRomEnabled
         applyReleaseFeatureOptions()
+    }
+
+    fun resetGuidanceSuggestionTracking() {
+        smKit?.resetGuidanceSuggestionTracking()
+        _guidanceSuggestion.postValue("Guidance suggestion: tracking reset")
+    }
+
+    fun rearmGuidanceSuggestionTracking() {
+        smKit?.rearmGuidanceSuggestionTrackingForCurrentExercise()
+        _guidanceSuggestion.postValue("Guidance suggestion: rearmed")
+    }
+
+    fun setGuidanceVocalPlaying(playing: Boolean) {
+        smKit?.setGuidanceVocalPlaying(playing)
+    }
+
+    fun setConfigString(configString: String?) {
+        nativeConfigString = configString?.trim()?.takeIf(String::isNotEmpty)
+        smKit?.setConfigString(nativeConfigString)
+    }
+
+    fun setFeedbacksToExclude(feedbacks: Set<FormFeedbackType>) {
+        smKit?.setFeedbacksToExclude(feedbacks)
+    }
+
+    suspend fun downloadResources(resources: List<DownloadModel>) {
+        smKit?.downloadResources(resources)
     }
 
     fun setPhoneMoved(moved: Boolean) {
@@ -163,9 +213,17 @@ class ActivityViewModel: ViewModel() {
     }
 
     fun configure(context: Context) {
-        smKit = SMKit.Builder(context).authKey(BuildConfig.sdk_auth_key).isUI(false).build()
+        smKit = SMKit.Builder(context)
+            .authKey(BuildConfig.sdk_auth_key)
+            .isUI(false)
+            .poseModelChoice(PoseModelChoice.AdaptiveChoice)
+            .voiceFeedbackLanguage("en")
+            .includeAssessmentInsights(false)
+            .build()
         smKit?.configure(configureListener)
         smKit?.smKitSessionListener(smKitSessionListener)
+        smKit?.setFeedbacksToExclude(emptySet())
+        smKit?.setConfigString(null)
         applyReleaseFeatureOptions()
     }
 
@@ -216,7 +274,7 @@ class ActivityViewModel: ViewModel() {
                     val kit = smKit ?: throw IllegalStateException("SMKit not configured")
                     val guidanceMode = configureDetectionOptions(kit, exercise)
                     val result = invokeStartDetection(kit, exercise, guidanceMode)
-                    result?.let { applyStartDetectionResult(it.first, it.second) }
+                    applyStartDetectionResult(result.first, result.second)
                     updateRuntimeSdkState(kit)
                     _exerciseState.postValue(Playing(exercise))
                 } catch (e: Exception) {
@@ -241,7 +299,7 @@ class ActivityViewModel: ViewModel() {
             _guidanceStatus.postValue("Guidance: switching")
             val guidanceMode = configureDetectionOptions(kit, exercise)
             val result = invokeSwitchDetectionWithoutRecording(kit, exercise, guidanceMode)
-            result?.let { applyStartDetectionResult(it.first, it.second) }
+            applyStartDetectionResult(result.first, result.second)
             updateRuntimeSdkState(kit)
             _exerciseState.postValue(Playing(exercise))
         } catch (e: Exception) {
@@ -355,26 +413,23 @@ class ActivityViewModel: ViewModel() {
         exerciseList.clear()
     }
 
-    /** Extracts feedback descriptions without depending on FormFeedbackType (not on app classpath). */
+    /** Converts typed SDK feedback values into customer-readable labels for the demo UI. */
     private fun feedbackToListOfStrings(data: SMKitMovementData): List<String> {
-        return try {
-            val feedbackProp = data::class.java.getMethod("getFeedback")
-            @Suppress("UNCHECKED_CAST")
-            val list = feedbackProp.invoke(data) as? List<*> ?: emptyList<Any>()
-            list.map { it.toString() }
-        } catch (_: Exception) {
-            emptyList()
-        }
+        return data.feedback.map(FormFeedbackType::descriptionText)
     }
 
     private fun applyReleaseFeatureOptions() {
         smKit?.setUseDefaultGuidanceMode(guidanceModeEnabled)
-        smKit?.setGuidanceDebugLogging(guidanceModeEnabled)
+        smKit?.setGuidanceSuggestionEnabled(guidanceSuggestionEnabled)
+        smKit?.setExerciseViewMonitoringEnabled(exerciseViewMonitoringEnabled)
+        smKit?.setGuidanceDebugLogging(BuildConfig.DEBUG && guidanceModeEnabled)
     }
 
     private fun configureDetectionOptions(kit: SMKit, exercise: String): Boolean? {
         kit.setUseDefaultGuidanceMode(guidanceModeEnabled)
-        kit.setGuidanceDebugLogging(guidanceModeEnabled)
+        kit.setGuidanceSuggestionEnabled(guidanceSuggestionEnabled)
+        kit.setExerciseViewMonitoringEnabled(exerciseViewMonitoringEnabled)
+        kit.setGuidanceDebugLogging(BuildConfig.DEBUG && guidanceModeEnabled)
         kit.setGuidanceVocalPlaying(false)
         kit.setPhoneMoved(_phoneMoved.value == true)
         kit.setAdaptiveRomEnabled(adaptiveRomEnabled)
@@ -390,61 +445,40 @@ class ActivityViewModel: ViewModel() {
         kit: SMKit,
         exercise: String,
         guidanceMode: Boolean?,
-    ): Pair<Any?, Any?>? =
-        invokeDetectionMethod(kit, "startDetection", exercise, guidanceMode)
+    ): Pair<RomRange, SMBaseExerciseType> =
+        kit.startDetection(
+            exercise = exercise,
+            configString = nativeConfigString,
+            guidanceMode = guidanceMode,
+            guidanceSuggestionEnabled = guidanceSuggestionEnabled,
+        )
 
     private fun invokeSwitchDetectionWithoutRecording(
         kit: SMKit,
         exercise: String,
         guidanceMode: Boolean?,
-    ): Pair<Any?, Any?>? =
-        invokeDetectionMethod(kit, "switchDetectionWithoutRecording", exercise, guidanceMode)
+    ): Pair<RomRange, SMBaseExerciseType> =
+        kit.switchDetectionWithoutRecording(exercise, nativeConfigString, guidanceMode)
 
-    private fun invokeDetectionMethod(
-        kit: SMKit,
-        methodName: String,
-        exercise: String,
-        guidanceMode: Boolean?,
-    ): Pair<Any?, Any?>? {
-        val method = kit::class.java.methods.firstOrNull {
-            it.name == methodName && it.parameterTypes.size == 3
-        } ?: throw NoSuchMethodException(methodName)
-        val result = method.invoke(kit, exercise, null, guidanceMode)
-        val pair = result as? Pair<*, *> ?: return null
-        return pair.first to pair.second
-    }
-
-    private fun applyStartDetectionResult(romRange: Any?, exerciseType: Any?) {
-        try {
-            // RomRange is a value class wrapping ClosedRange<Float>; at runtime may be boxed or unboxed.
-            val rangeObj = romRange?.javaClass?.methods
-                ?.firstOrNull { it.name == "getValue" }
-                ?.invoke(romRange) ?: romRange
-            val start = rangeObj?.javaClass?.methods
-                ?.firstOrNull { it.name == "getStart" }
-                ?.invoke(rangeObj) as? Float
-            val endInclusive = rangeObj?.javaClass?.methods
-                ?.firstOrNull { it.name == "getEndInclusive" }
-                ?.invoke(rangeObj) as? Float
-            if (start != null && endInclusive != null && start < endInclusive) {
-                _romRangeMin.postValue(start)
-                _romRangeMax.postValue(endInclusive)
-            }
-            val typeName = exerciseType?.javaClass?.methods
-                ?.firstOrNull { it.name == "name" }
-                ?.invoke(exerciseType) as? String
-            _isDynamicExercise.postValue(typeName == "Dynamic")
-        } catch (_: Exception) {
+    private fun applyStartDetectionResult(romRange: RomRange, exerciseType: SMBaseExerciseType) {
+        val range = romRange.value
+        if (range.start < range.endInclusive) {
+            _romRangeMin.postValue(range.start)
+            _romRangeMax.postValue(range.endInclusive)
         }
+        _isDynamicExercise.postValue(exerciseType == SMBaseExerciseType.Dynamic)
     }
 
     private fun updateRuntimeSdkState(kit: SMKit) {
-        val phonePosition = runCatching {
-            kit::class.java.methods.firstOrNull { it.name == "getCurrentPhonePosition" }
-                ?.invoke(kit)
-                ?.toString()
-        }.getOrNull() ?: "unknown"
+        val phonePosition = runCatching { kit.getCurrentPhonePosition().toString() }
+            .getOrDefault("unknown")
         _phonePosition.postValue("Phone position: $phonePosition")
+        kit.getExerciseRange()?.value?.let { range ->
+            if (range.start < range.endInclusive) {
+                _romRangeMin.postValue(range.start)
+                _romRangeMax.postValue(range.endInclusive)
+            }
+        }
     }
 
     private fun guidanceStatusText(data: SMKitMovementData): String {
@@ -485,11 +519,42 @@ class ActivityViewModel: ViewModel() {
 
         override fun onSuccess() {
             smKit?.preparePoseEstimation()
+            smKit?.resourceDownloadWarning?.let { warning ->
+                Log.w("ActivityViewModel", warning)
+                _rawPipelineStatus.postValue("Resources: $warning")
+            }
+            observeRawPipeline()
             _configureState.value = Passed
         }
     }
 
-    private val smKitSessionListener = object : SMKitSessionListener {
+    private fun observeRawPipeline() {
+        rawPipelineJob?.cancel()
+        rawPipelineJob = viewModelScope.launch(Dispatchers.Default) {
+            smKit?.observeAlgoPipeResultData()?.collect { data ->
+                val correction = data.exerciseViewCorrectionVocalKey
+                    ?.let { ", correction=$it" }
+                    .orEmpty()
+                _rawPipelineStatus.postValue("Raw pipeline: ${data.pipelineName()}$correction")
+            }
+        }
+    }
+
+    private fun AlgoPipeResultData.pipelineName(): String = when (this) {
+        is AlgoPipeResultData.BodyAssessment -> "body assessment"
+        is AlgoPipeResultData.Dynamic -> "dynamic"
+        is AlgoPipeResultData.Highlights -> "highlights"
+        is AlgoPipeResultData.Idle -> "idle"
+        is AlgoPipeResultData.Mobility -> "mobility"
+        is AlgoPipeResultData.Static -> "static"
+    }
+
+    private val smKitSessionListener = object : SMKitSessionListener, SMKitGuidanceSuggestionListener {
+        override fun handleGuidanceSuggestion(suggestion: SMKitGuidanceSuggestion) {
+            _guidanceSuggestion.postValue(
+                "Guidance suggestion: ${suggestion.exerciseName} after ${suggestion.elapsedEligibleTimeMs / 1_000}s"
+            )
+        }
         override fun captureSessionDidSet(frameInfo: FrameInfo) {
             _frameInfo.postValue(frameInfo)
             if (isAssessmentMode) {
@@ -537,5 +602,11 @@ class ActivityViewModel: ViewModel() {
         }
 
         override fun handleSessionErrors() {}
+    }
+
+    override fun onCleared() {
+        rawPipelineJob?.cancel()
+        smKit?.stopCamera()
+        super.onCleared()
     }
 }

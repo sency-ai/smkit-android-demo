@@ -104,6 +104,56 @@
         app:layout_constraintTop_toBottomOf="@id/guidance_status_view"
         tools:text="Phone position: Floor" />
 
+    <TextView
+        android:id="@+id/guidance_suggestion_view"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:background="#80000000"
+        android:padding="6dp"
+        android:textColor="@color/white"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/phone_position_view"
+        tools:text="Guidance suggestion: waiting" />
+
+    <TextView
+        android:id="@+id/raw_pipeline_status_view"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:background="#80000000"
+        android:padding="6dp"
+        android:textColor="@color/white"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/guidance_suggestion_view"
+        tools:text="Raw pipeline: dynamic" />
+
+    <LinearLayout
+        android:id="@+id/guidance_actions_row"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/raw_pipeline_status_view">
+
+        <Button
+            android:id="@+id/reset_guidance_tracking_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Reset Suggestion" />
+
+        <Button
+            android:id="@+id/rearm_guidance_tracking_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Rearm" />
+    </LinearLayout>
+
     <ScrollView
         android:id="@+id/feedbacks_scroll"
         android:layout_width="0dp"
