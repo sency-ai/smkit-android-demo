@@ -16,6 +16,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        def localSdkRepo = providers.gradleProperty("smkitLocalRepo")
+            .orElse(providers.environmentVariable("SMKIT_LOCAL_REPO"))
+        if (localSdkRepo.isPresent()) {
+            maven { url uri(localSdkRepo.get()) }
+        }
         maven {
             url "https://artifacts.sency.ai/artifactory/release"
         }

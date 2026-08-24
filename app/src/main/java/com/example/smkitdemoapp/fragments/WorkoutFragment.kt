@@ -64,6 +64,12 @@ class WorkoutFragment: Fragment() {
             phoneMovedView.setOnClickListener {
                 viewModel.setPhoneMoved(viewModel.phoneMoved.value != true)
             }
+            resetGuidanceTrackingView.setOnClickListener {
+                viewModel.resetGuidanceSuggestionTracking()
+            }
+            rearmGuidanceTrackingView.setOnClickListener {
+                viewModel.rearmGuidanceSuggestionTracking()
+            }
             pauseView.setOnClickListener {
                 viewModel.pauseExercise()
                 setPlayerViewsPauseState()
@@ -160,6 +166,12 @@ class WorkoutFragment: Fragment() {
         }
         viewModel.phoneMoved.observe(viewLifecycleOwner) { moved ->
             binding.phoneMovedView.text = if (moved) "Phone Moved" else "Phone OK"
+        }
+        viewModel.guidanceSuggestion.observe(viewLifecycleOwner) {
+            binding.guidanceSuggestionView.text = it
+        }
+        viewModel.rawPipelineStatus.observe(viewLifecycleOwner) {
+            binding.rawPipelineStatusView.text = it
         }
     }
 

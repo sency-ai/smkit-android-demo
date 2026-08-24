@@ -59,8 +59,11 @@ class SelectExercisesFragment : Fragment() {
             viewModel.setShowSkeleton(binding.showSkeletonSwitch.isChecked)
             viewModel.setReleaseFeatureOptions(
                 guidanceModeEnabled = binding.guidanceModeSwitch.isChecked,
+                guidanceSuggestionEnabled = binding.guidanceSuggestionSwitch.isChecked,
+                exerciseViewMonitoringEnabled = binding.exerciseViewMonitoringSwitch.isChecked,
                 adaptiveRomEnabled = binding.adaptiveRomSwitch.isChecked,
             )
+            viewModel.setConfigString(binding.configStringInput.text?.toString())
             viewModel.setPhoneMoved(false)
             parentFragmentManager.beginTransaction().apply {
                 add(R.id.nav_host_fragment, WorkoutFragment())
