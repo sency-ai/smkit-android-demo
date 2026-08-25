@@ -173,6 +173,9 @@ class WorkoutFragment: Fragment() {
         viewModel.rawPipelineStatus.observe(viewLifecycleOwner) {
             binding.rawPipelineStatusView.text = it
         }
+        viewModel.movementStatus.observe(viewLifecycleOwner) {
+            binding.movementStatusView.text = it
+        }
     }
 
     private fun observeSessionState() {

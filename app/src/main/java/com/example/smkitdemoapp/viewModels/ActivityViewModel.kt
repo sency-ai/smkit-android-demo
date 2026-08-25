@@ -50,6 +50,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.util.Locale
 import kotlin.jvm.Throws
 
 class ActivityViewModel: ViewModel() {
@@ -132,6 +133,9 @@ class ActivityViewModel: ViewModel() {
 
     private val _rawPipelineStatus = MutableLiveData("Raw pipeline: waiting")
     val rawPipelineStatus: LiveData<String> get() = _rawPipelineStatus
+
+    private val _movementStatus = MutableLiveData("Movement data: waiting")
+    val movementStatus: LiveData<String> get() = _movementStatus
 
     private val _phonePosition = MutableLiveData("Phone position: unknown")
     val phonePosition: LiveData<String> get() = _phonePosition
@@ -268,6 +272,7 @@ class ActivityViewModel: ViewModel() {
                     _romRangeMin.postValue(null)
                     _romRangeMax.postValue(null)
                     _guidanceStatus.postValue("Guidance: waiting")
+                    _movementStatus.postValue("Movement data: waiting")
                     _phonePosition.postValue("Phone position: unknown")
                     _isDynamicExercise.postValue(false)
                     val exercise = loadExercise()
@@ -492,6 +497,17 @@ class ActivityViewModel: ViewModel() {
         return "Guidance: ${step.phaseKey} $percent%$vocal$replay"
     }
 
+    private fun movementStatusText(data: SMKitMovementData): String {
+        val entryCorrection = data.positionEntryVocalFeedback?.name ?: "none"
+        val viewCorrection = data.exerciseViewCorrectionVocalKey ?: "none"
+        return "Movement: rep=${data.didFinishMovement}, inPosition=${data.isInPosition}, " +
+            "phoneMoved=${data.isPhoneMoved}, shallow=${data.isShallowRep}, " +
+            "perfect=${data.isPerfectForm}, score=${String.format(Locale.US, "%.2f", data.techniqueScore)}, " +
+            "ROM=${String.format(Locale.US, "%.2f", data.currentRomValue)} " +
+            "(raw=${String.format(Locale.US, "%.2f", data.currentRomRawValue)}), " +
+            "intent=${data.intent}, entry=$entryCorrection, correction=$viewCorrection"
+    }
+
     /** Preloads the iOS-aligned assessment exercise list and prepares for assessment flow. */
     fun loadDemoAssessmentExercises() {
         isAssessmentMode = true
@@ -586,6 +602,7 @@ class ActivityViewModel: ViewModel() {
                 _isInPosition.postValue(data.isInPosition)
                 _currentRomValue.postValue(data.currentRomValue)
                 _guidanceStatus.postValue(guidanceStatusText(data))
+                _movementStatus.postValue(movementStatusText(data))
             }
             if (movementData?.didFinishMovement == true) {
                 val exercise = exerciseState.value

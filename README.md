@@ -19,7 +19,7 @@ This application is the customer-facing reference for SMKit 1.8.0's low-level ca
 
 The main integration is in [`ActivityViewModel.kt`](app/src/main/java/com/example/smkitdemoapp/viewModels/ActivityViewModel.kt). The exercise selector drives configuration options, and the workout screen shows the SDK's live telemetry.
 
-The **Start 3D Session** home action remains a clearly labelled placeholder because the public Android SDK exposes the 2D camera pipeline.
+The demo uses SMKit Android 1.8.0's public live-camera pipeline.
 
 ## Requirements
 
@@ -76,7 +76,7 @@ val smKit = SMKit.Builder(applicationContext)
     .authKey(BuildConfig.sdk_auth_key)
     .isUI(false)
     .poseModelChoice(PoseModelChoice.AdaptiveChoice)
-    .language(SMLanguage.English)
+    .voiceFeedbackLanguage("en")
     .includeAssessmentInsights(false)
     .build()
 
@@ -92,6 +92,20 @@ smKit.configure(object : ConfigurationResult {
 ```
 
 SMKit must finish configuration before a session starts. Preparing pose estimation after configuration reduces the first-session warm-up.
+
+## Model and asset delivery
+
+SMKit 1.8.0 obtains configuration and required models from the server and validates them before use. Keep the device online for initial configuration and for model/resource downloads that have not completed before. Previously downloaded valid server-derived cache entries may be reused when refresh is unavailable.
+
+The low-level SDK also exposes explicit resource preloading:
+
+```kotlin
+lifecycleScope.launch {
+    smKit.downloadResources(listOf(/* DownloadModel values */))
+}
+```
+
+After configuration, check `resourceDownloadWarning` and surface it if the host application needs to tell the user that optional UI resources were unavailable.
 
 ## Camera and detection lifecycle
 
@@ -125,15 +139,59 @@ smKit.stopCamera()
 
 Pass `guidanceMode = null` to let the SDK's defaults apply, `true` to force it on for a supported exercise, or `false` to disable it. The demo also shows `switchDetectionWithoutRecording` with the same typed options.
 
+## Body calibration
+
+Android publishes calibration as a flow:
+
+```kotlin
+lifecycleScope.launch {
+    smKit.observeBodyCalibrationData().collect { state ->
+        when (state) {
+            is BodyInside -> renderGuide(state.rect, state.frameSize, inPosition = true)
+            is BodyOutside -> renderGuide(state.rect, state.frameSize, inPosition = false)
+            is Idle -> renderGuide(state.rect, state.frameSize, inPosition = false)
+        }
+    }
+}
+```
+
+The demo assessment combines this SDK body-calibration flow with Android sensor-based phone-angle calibration, draws the returned guide rectangle, and allows calibration to be skipped.
+
+## Demo assessment
+
+The **Demo Assessment** flow uses public Android APIs to run Overhead Mobility, Squat Regular Overhead Static, Jefferson Curl, and right/left Standing Side Bend. During each timed exercise it displays calibration, countdown, live feedback, in-position state, rep count where applicable, and the returned ROM range. The final screen shows overall and per-exercise technique, peak ROM, time in position, and detected issues.
+
 ## Live data and callbacks
 
 The workout screen demonstrates three complementary channels:
 
 - `SMKitSessionListener` for frame info, positions, movement data, and errors.
 - `observeBodyCalibrationData()` for in-frame calibration state.
-- `observeAlgoPipeData()` for low-level pipeline telemetry.
+- `observeAlgoPipeResultData()` for low-level pipeline telemetry.
 
 Optional exercise-view monitoring is enabled with `setExerciseViewMonitoringEnabled`; its correction vocal key is emitted through `AlgoPipeResultData` and displayed by the demo.
+
+The workout screen also displays every public field in Android's `SMKitMovementData` surface that is useful for integration diagnostics: perfect/shallow form, technique score, normalized and raw ROM, intent, position-entry correction, exercise-view correction, guidance step/progress/vocal state, phone movement, and rep completion.
+
+### `SMKitMovementData`
+
+| Property | Description |
+|---|---|
+| `didFinishMovement` | A dynamic rep completed, or the current movement completion condition fired. |
+| `isInPosition` | Static/mobility/body-assessment in-position state. |
+| `isPhoneMoved` | Phone-movement gate state. |
+| `isShallowRep` | The completed dynamic rep was shallow. |
+| `isPerfectForm` | No form correction is active for the current sample. |
+| `techniqueScore` | Live normalized technique score. |
+| `currentRomValue` | Normalized ROM value. |
+| `currentRomRawValue` | Exercise-specific raw ROM value. |
+| `feedback` | Typed `FormFeedbackType` corrections. |
+| `guidanceStep`, `guidanceAdvanceProgress` | Current guidance phase and progress. |
+| `isGuidanceModeActive` | Whether guidance mode is active. |
+| `guidanceVocalKey`, `requestGuidanceVocalReplay` | Host audio-coordination information. |
+| `exerciseViewCorrectionVocalKey` | Correction emitted by exercise-view monitoring. |
+| `intent` | Current typed `ExerciseIntent`. |
+| `positionEntryVocalFeedback` | Current regular-mode position-entry correction when supported. |
 
 ## Runtime controls
 
@@ -141,10 +199,10 @@ The selector and workout screens exercise these calls directly:
 
 ```kotlin
 smKit.setUseDefaultGuidanceMode(true)
-smKit.setGuidanceModeSuggestionEnabled(true)
+smKit.setGuidanceSuggestionEnabled(true)
 smKit.setGuidanceDebugLogging(BuildConfig.DEBUG)
-smKit.resetGuidanceModeSuggestion()
-smKit.rearmGuidanceModeSuggestion()
+smKit.resetGuidanceSuggestionTracking()
+smKit.rearmGuidanceSuggestionTrackingForCurrentExercise()
 
 smKit.setAdaptiveRomEnabled(true)
 smKit.setAdaptiveRomStart(0f)
@@ -163,14 +221,14 @@ smKit.setFeedbacksToExclude(emptySet())
 
 Resource preloading is also available through the suspending `downloadResources(resources: List<DownloadModel>)` call. The configured instance exposes `resourceDownloadWarning` when the host app needs to surface a resource warning.
 
-## Test against an unpublished local SDK
+## Result models
 
-The demo normally resolves artifacts from Sency Artifactory. SDK maintainers can test a local Maven publication without changing checked-in repository URLs:
+`stopDetection()` returns `SMExerciseInfo`. Dynamic detection returns `Dynamic`, including performed reps, perfect reps, technique, and feedback counts. Static/mobility/body-assessment detection returns `Static`, including ROM range, time in position, peak normalized ROM, optional raw peak degrees, technique, and feedback counts.
 
-```bash
-./gradlew assembleDebug -PsmkitLocalRepo=/absolute/path/to/smkit_android/repo
-```
+`stopSession()` returns `DetectionSessionResultData?` with the session ID, recorded exercises, start/end times, total time, and total score. The demo renders the complete object as formatted JSON and offers a copy action.
 
-The equivalent environment variable is `SMKIT_LOCAL_REPO`. The local repository is used only when the property or environment variable is supplied.
+## Android 1.8.0 coverage
+
+The demo covers the public SMKit Android 1.8.0 live-camera lifecycle, body calibration, pose joints, skeleton rendering, movement feedback, local assessment orchestration, ROM, guidance/default-policy checks, guidance suggestions and recovery controls, feedback exclusion, phone movement, raw pipeline data, model preparation, resource preloading/warnings, and typed result models.
 
 For support, contact [support@sency.ai](mailto:support@sency.ai).

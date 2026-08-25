@@ -16,6 +16,7 @@ import com.example.smkitdemoapp.R
 import com.example.smkitdemoapp.databinding.FragmentAssessmentSummaryBinding
 import com.example.smkitdemoapp.models.AssessmentExerciseResult
 import com.example.smkitdemoapp.viewModels.ActivityViewModel
+import java.util.Locale
 
 class AssessmentSummaryFragment : Fragment() {
 
@@ -97,7 +98,7 @@ class AssessmentSummaryFragment : Fragment() {
         card.addView(scoreBar, barLp)
 
         val sub = TextView(requireContext()).apply {
-            text = "Time in position: ${"%.1f".format(result.timeInPosition)}s"
+            text = "Time in position: ${String.format(Locale.US, "%.1f", result.timeInPosition)}s"
             setTextColor(Color.GRAY)
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
         }
