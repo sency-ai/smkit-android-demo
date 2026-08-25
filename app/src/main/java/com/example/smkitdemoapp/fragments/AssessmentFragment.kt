@@ -19,6 +19,7 @@ import com.example.smkitdemoapp.calibration.PhoneCalibrationHelper
 import com.example.smkitdemoapp.viewModels.ActivityViewModel
 import com.example.smkitdemoapp.states.exercise.ExerciseState
 import com.example.smkitdemoapp.states.exercise.Playing
+import java.util.Locale
 
 private const val EXERCISE_DURATION_SEC = 15f
 private const val TICK_MS = 100L
@@ -259,7 +260,7 @@ class AssessmentFragment : Fragment() {
     }
 
     private fun updateExerciseTimerUi() {
-        binding.assessmentTimer.text = String.format("%.1f", maxOf(0f, exerciseTimeRemaining))
+        binding.assessmentTimer.text = String.format(Locale.US, "%.1f", maxOf(0f, exerciseTimeRemaining))
         binding.assessmentTimerProgress.progress = (exerciseTimeRemaining * 10).toInt()
     }
 
