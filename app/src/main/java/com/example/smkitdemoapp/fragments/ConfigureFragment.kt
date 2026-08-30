@@ -5,6 +5,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.replace
@@ -15,11 +18,9 @@ import com.example.smkitdemoapp.states.configure.Failed
 import com.example.smkitdemoapp.states.configure.Loading
 import com.example.smkitdemoapp.states.configure.Passed
 import com.example.smkitdemoapp.viewModels.ActivityViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 class ConfigureFragment: Fragment() {
 
@@ -34,24 +35,26 @@ class ConfigureFragment: Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentConfigureBinding.inflate(inflater, container, false)
-        observeConfigureState()
         return binding.root
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onDestroyView() {
+        super.onDestroyView()
         _binding = null
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        observeConfigureState()
         activityViewModel.configure(binding.root.context)
     }
 
     private fun observeConfigureState() {
-        activityViewModel.configureState.filterNotNull().onEach(::handleConfigureState).launchIn(
-            CoroutineScope(Dispatchers.Main)
-        )
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                activityViewModel.configureState.filterNotNull().collect(::handleConfigureState)
+            }
+        }
     }
 
     private fun handleConfigureState(state: ConfigureState) {
