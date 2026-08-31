@@ -155,6 +155,7 @@ class ActivityViewModel: ViewModel() {
     private var guidanceSuggestionEnabled = false
     private var exerciseViewMonitoringEnabled = false
     private var adaptiveRomEnabled = false
+    private var useWideAngleCamera = false
     private var nativeConfigString: String? = null
     private var rawPipelineJob: Job? = null
 
@@ -167,13 +168,18 @@ class ActivityViewModel: ViewModel() {
         guidanceSuggestionEnabled: Boolean,
         exerciseViewMonitoringEnabled: Boolean,
         adaptiveRomEnabled: Boolean,
+        useWideAngleCamera: Boolean,
     ) {
         this.guidanceModeEnabled = guidanceModeEnabled
         this.guidanceSuggestionEnabled = guidanceSuggestionEnabled
         this.exerciseViewMonitoringEnabled = exerciseViewMonitoringEnabled
         this.adaptiveRomEnabled = adaptiveRomEnabled
+        this.useWideAngleCamera = useWideAngleCamera
         applyReleaseFeatureOptions()
     }
+
+    val isWideAngleCameraEnabled: Boolean
+        get() = useWideAngleCamera
 
     fun resetGuidanceSuggestionTracking() {
         smKit?.resetGuidanceSuggestionTracking()
@@ -360,6 +366,7 @@ class ActivityViewModel: ViewModel() {
         smKit?.setAdaptiveRomEnabled(false)
         setPhoneMoved(false)
         smKit?.stopSession()?.also(::logSessionResults)
+        smKit?.setUseWideAngleCamera(false)
         _sessionState.value = Stopped
     }
 
@@ -429,6 +436,7 @@ class ActivityViewModel: ViewModel() {
         smKit?.setGuidanceSuggestionEnabled(guidanceSuggestionEnabled)
         smKit?.setExerciseViewMonitoringEnabled(exerciseViewMonitoringEnabled)
         smKit?.setGuidanceDebugLogging(BuildConfig.DEBUG && guidanceModeEnabled)
+        smKit?.setUseWideAngleCamera(useWideAngleCamera)
     }
 
     private fun configureDetectionOptions(kit: SMKit, exercise: String): Boolean? {

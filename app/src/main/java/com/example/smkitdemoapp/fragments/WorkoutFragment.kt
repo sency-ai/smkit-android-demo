@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.camera.core.Preview.SurfaceProvider
+import androidx.camera.view.PreviewView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.LifecycleOwner
@@ -47,6 +48,14 @@ class WorkoutFragment: Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentWorkoutBinding.inflate(inflater, container, false)
+        val useWideAngleCamera = viewModel.isWideAngleCameraEnabled
+        binding.previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        binding.previewView.scaleType = if (useWideAngleCamera) {
+            PreviewView.ScaleType.FIT_CENTER
+        } else {
+            PreviewView.ScaleType.FILL_CENTER
+        }
+        binding.skeletonOverlay.fitCenter = useWideAngleCamera
         viewModel.startSession(viewLifecycleOwner, binding.previewView.surfaceProvider)
         setObservers()
         setClickListeners()
