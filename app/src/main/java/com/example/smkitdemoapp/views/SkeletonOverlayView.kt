@@ -29,6 +29,15 @@ class SkeletonOverlayView @JvmOverloads constructor(
     var videoWidth: Int = 1
     var videoHeight: Int = 1
 
+    /** Match PreviewView's FIT_CENTER transform in wide mode and FILL_CENTER otherwise. */
+    var fitCenter: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                invalidate()
+            }
+        }
+
     /** True when using front camera; skeleton X is mirrored to match preview. */
     var isImageFlipped: Boolean = false
         set(value) {
@@ -90,7 +99,11 @@ class SkeletonOverlayView @JvmOverloads constructor(
 
         val scaleX = width.toFloat() / videoWidth
         val scaleY = height.toFloat() / videoHeight
-        val scale = scaleX.coerceAtMost(scaleY)
+        val scale = if (fitCenter) {
+            scaleX.coerceAtMost(scaleY)
+        } else {
+            scaleX.coerceAtLeast(scaleY)
+        }
         val offsetX = (width - videoWidth * scale) / 2f
         val offsetY = (height - videoHeight * scale) / 2f
 

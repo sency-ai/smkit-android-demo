@@ -1,13 +1,13 @@
 # SMKit Android Demo
 
-This application is the customer-facing reference for SMKit 1.8.1's low-level camera and movement-detection API. It deliberately uses SMKit directly, without SMKitUI, so customers can see the complete lifecycle and own all presentation.
+This application is the customer-facing reference for SMKit 1.8.2's low-level camera and movement-detection API. It deliberately uses SMKit directly, without SMKitUI, so customers can see the complete lifecycle and own all presentation.
 
 ## What the demo covers
 
 - SDK construction, configuration, and pose-estimation preparation
-- 2D camera session start/stop and camera release
+- 2D camera session start/stop, device-agnostic wide-angle control, and camera release
 - Exercise selection, typed detector start/switch/stop, and session results
-- Default guidance mode and 1.8.1 guidance suggestions
+- Default guidance mode and 1.8.2 guidance suggestions
 - Guidance suggestion callbacks plus reset/rearm controls
 - Guidance vocal coordination, reset, and end controls
 - Adaptive ROM, exercise ROM range, and exercise type
@@ -19,7 +19,7 @@ This application is the customer-facing reference for SMKit 1.8.1's low-level ca
 
 The main integration is in [`ActivityViewModel.kt`](app/src/main/java/com/example/smkitdemoapp/viewModels/ActivityViewModel.kt). The exercise selector drives configuration options, and the workout screen shows the SDK's live telemetry.
 
-The demo uses SMKit Android 1.8.1's public live-camera pipeline.
+The demo uses SMKit Android 1.8.2's public live-camera pipeline.
 
 ## Requirements
 
@@ -29,7 +29,7 @@ The demo uses SMKit Android 1.8.1's public live-camera pipeline.
 - Camera permission
 - A Sency SDK key
 
-## Install SMKit 1.8.1
+## Install SMKit 1.8.2
 
 Add Sency's Maven repository:
 
@@ -45,15 +45,15 @@ Add SMKit and the public model dependencies referenced by SMKit's typed API:
 
 ```groovy
 dependencies {
-    implementation "com.sency.smkit:smkit:1.8.1"
-    implementation "com.sency.smbase.data:smbase-data:1.8.1"
-    implementation "com.sency.smbase.nativeclient:smbase-native-client:1.8.1"
+    implementation "com.sency.smkit:smkit:1.8.2"
+    implementation "com.sency.smbase.data:smbase-data:1.8.2"
+    implementation "com.sency.smbase.nativeclient:smbase-native-client:1.8.2"
 }
 ```
 
 `smbase-data` supplies public types such as `RomRange`, `SMBaseExerciseType`, `DownloadModel`, and raw algorithm data. `smbase-native-client` supplies `FormFeedbackType`.
 
-SMKit 1.8.1 is validated with CameraX 1.1.0, AppCompat 1.4.2, and Kotlin Coroutines 1.5.0. This demo pins that exact compatibility graph so newer Lifecycle or other transitive requirements do not silently upgrade it. Navigation remains an application dependency and is not required by SMKit.
+SMKit 1.8.2 is validated with CameraX 1.1.0, AppCompat 1.4.2, and Kotlin Coroutines 1.5.0. CameraX's managed APIs remain at 1.1.0; the SDK resolves `camera-core` to Sency's `1.1.0.1-sency16kb` compatibility artifact, which replaces only CameraX's native image-processing helper for Android 16 KB page-size support. This demo pins that exact compatibility graph so newer Lifecycle or other transitive requirements do not silently upgrade it. Navigation remains an application dependency and is not required by SMKit.
 
 The app also keeps the native-library packaging rule used by the SDK:
 
@@ -97,7 +97,7 @@ SMKit must finish configuration before a session starts. Preparing pose estimati
 
 ## Model and asset delivery
 
-SMKit 1.8.1 obtains configuration and required models from the server and validates them before use. Keep the device online for initial configuration and for model/resource downloads that have not completed before. Previously downloaded valid server-derived cache entries may be reused when refresh is unavailable.
+SMKit 1.8.2 obtains configuration and required models from the server and validates them before use. Keep the device online for initial configuration and for model/resource downloads that have not completed before. Previously downloaded valid server-derived cache entries may be reused when refresh is unavailable.
 
 The low-level SDK also exposes explicit resource preloading:
 
@@ -112,6 +112,14 @@ After configuration, check `resourceDownloadWarning` and surface it if the host 
 ## Camera and detection lifecycle
 
 ```kotlin
+val useWideAngleCamera = true
+smKit.setUseWideAngleCamera(useWideAngleCamera)
+previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+previewView.scaleType = if (useWideAngleCamera) {
+    PreviewView.ScaleType.FIT_CENTER
+} else {
+    PreviewView.ScaleType.FILL_CENTER
+}
 smKit.startSession(lifecycleOwner, previewView.surfaceProvider)
 
 val sessionListener = object : SMKitSessionListener, SMKitGuidanceSuggestionListener {
@@ -140,6 +148,8 @@ smKit.stopCamera()
 ```
 
 Pass `guidanceMode = null` to let the SDK's defaults apply, `true` to force it on for a supported exercise, or `false` to disable it. The demo also shows `switchDetectionWithoutRecording` with the same typed options.
+
+Use **Select Exercises → Wide-angle camera** to test the widest field of view supported by the current device. SMKit requests CameraX's reported minimum zoom ratio; a device limited to 1× stays at 1× without failing. The demo uses `FIT_CENTER` in wide mode so the complete 4:3 frame is visible, and its skeleton overlay uses the matching transform.
 
 ## Body calibration
 
@@ -210,6 +220,8 @@ smKit.setAdaptiveRomEnabled(true)
 smKit.setAdaptiveRomStart(0f)
 val range = smKit.getExerciseRange()
 
+smKit.setUseWideAngleCamera(true)
+
 smKit.setPhoneMoved(false)
 val phonePosition = smKit.getCurrentPhonePosition()
 
@@ -229,8 +241,8 @@ Resource preloading is also available through the suspending `downloadResources(
 
 `stopSession()` returns `DetectionSessionResultData?` with the session ID, recorded exercises, start/end times, total time, and total score. The demo renders the complete object as formatted JSON and offers a copy action.
 
-## Android 1.8.1 coverage
+## Android 1.8.2 coverage
 
-The demo covers the public SMKit Android 1.8.1 live-camera lifecycle, body calibration, pose joints, skeleton rendering, movement feedback, local assessment orchestration, ROM, guidance/default-policy checks, guidance suggestions and recovery controls, feedback exclusion, phone movement, raw pipeline data, model preparation, resource preloading/warnings, and typed result models.
+The demo covers the public SMKit Android 1.8.2 live-camera lifecycle, device-agnostic wide angle, body calibration, pose joints, skeleton rendering, movement feedback, local assessment orchestration, ROM, guidance/default-policy checks, guidance suggestions and recovery controls, feedback exclusion, phone movement, raw pipeline data, model preparation, resource preloading/warnings, and typed result models.
 
 For support, contact [support@sency.ai](mailto:support@sency.ai).

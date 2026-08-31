@@ -62,6 +62,7 @@ class SelectExercisesFragment : Fragment() {
                 guidanceSuggestionEnabled = binding.guidanceSuggestionSwitch.isChecked,
                 exerciseViewMonitoringEnabled = binding.exerciseViewMonitoringSwitch.isChecked,
                 adaptiveRomEnabled = binding.adaptiveRomSwitch.isChecked,
+                useWideAngleCamera = binding.wideAngleCameraSwitch.isChecked,
             )
             viewModel.setConfigString(binding.configStringInput.text?.toString())
             viewModel.setPhoneMoved(false)

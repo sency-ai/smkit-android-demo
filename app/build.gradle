@@ -10,6 +10,7 @@ if (localPropertiesFile.exists()) {
 }
 
 def cameraXCompatibilityVersion = "1.1.0"
+def cameraXCoreCompatibilityVersion = "1.1.0.1-sency16kb"
 def appCompatCompatibilityVersion = "1.4.2"
 def coroutinesCompatibilityVersion = "1.5.0"
 
@@ -17,7 +18,7 @@ def coroutinesCompatibilityVersion = "1.5.0"
 // transitive AndroidX/Lifecycle dependencies to silently upgrade these modules.
 configurations.configureEach {
     resolutionStrategy.force(
-        "androidx.camera:camera-core:${cameraXCompatibilityVersion}",
+        "androidx.camera:camera-core:${cameraXCoreCompatibilityVersion}",
         "androidx.camera:camera-camera2:${cameraXCompatibilityVersion}",
         "androidx.camera:camera-lifecycle:${cameraXCompatibilityVersion}",
         "androidx.camera:camera-view:${cameraXCompatibilityVersion}",
@@ -38,7 +39,7 @@ android {
         minSdk 24
         targetSdk 36
         versionCode 2
-        versionName "1.8.1"
+        versionName "1.8.2"
 
         buildConfigField "String", "sdk_auth_key", "\"${localProperties.getProperty('sdk_auth_key', '')}\""
 
@@ -68,17 +69,17 @@ android {
 }
 
 dependencies {
-    implementation "com.sency.smkit:smkit:1.8.1"
+    implementation "com.sency.smkit:smkit:1.8.2"
     // SMKit's public API exposes these model types. Keep them on the compile classpath
     // so the demo can call the typed APIs directly instead of using reflection.
-    implementation "com.sency.smbase.data:smbase-data:1.8.1"
-    implementation "com.sency.smbase.nativeclient:smbase-native-client:1.8.1"
+    implementation "com.sency.smbase.data:smbase-data:1.8.2"
+    implementation "com.sency.smbase.nativeclient:smbase-native-client:1.8.2"
 
     implementation "androidx.constraintlayout:constraintlayout:2.1.4"
 
     implementation 'com.google.code.gson:gson:2.8.9'
 
-    implementation "androidx.camera:camera-core:${cameraXCompatibilityVersion}"
+    implementation "androidx.camera:camera-core:${cameraXCoreCompatibilityVersion}"
     implementation "androidx.camera:camera-lifecycle:${cameraXCompatibilityVersion}"
     implementation "androidx.camera:camera-view:${cameraXCompatibilityVersion}"
 
