@@ -19,7 +19,13 @@ dependencyResolutionManagement {
         def localSdkRepo = providers.gradleProperty("smkitLocalRepo")
             .orElse(providers.environmentVariable("SMKIT_LOCAL_REPO"))
         if (localSdkRepo.isPresent()) {
-            maven { url uri(localSdkRepo.get()) }
+            exclusiveContent {
+                forRepository { maven { url uri(localSdkRepo.get()) } }
+                filter {
+                    includeGroupByRegex 'com\\.sency.*'
+                    includeVersion 'androidx.camera', 'camera-core', '1.1.0.1-sency16kb'
+                }
+            }
         }
         maven {
             url "https://artifacts.sency.ai/artifactory/release"
