@@ -3,11 +3,21 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file("local.properties")
-if (localPropertiesFile.exists()) {
-    localProperties.load(new FileInputStream(localPropertiesFile))
+// Sency SDK key. Copy AuthKey.local.properties.example to AuthKey.local.properties (git-ignored)
+// and set SMKIT_AUTH_KEY. Also read: `sdk_auth_key` in local.properties, or the SMKIT_AUTH_KEY environment variable.
+def authKeyProperties = new Properties()
+["local.properties", "AuthKey.local.properties"].each { name ->
+    def file = rootProject.file(name)
+    if (file.exists()) file.withInputStream { authKeyProperties.load(it) }
 }
+def sdkAuthKey = (authKeyProperties.getProperty("SMKIT_AUTH_KEY")
+        ?: authKeyProperties.getProperty("sdk_auth_key")
+        ?: System.getenv("SMKIT_AUTH_KEY")
+        ?: "").trim()
+if (sdkAuthKey.isEmpty()) {
+    logger.warn("No SDK key: create AuthKey.local.properties from AuthKey.local.properties.example.")
+}
+def sdkAuthKeyLiteral = "\"" + sdkAuthKey.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
 def cameraXCompatibilityVersion = "1.1.0"
 def cameraXCoreCompatibilityVersion = "1.1.0.1-sency16kb"
@@ -39,9 +49,9 @@ android {
         minSdk 24
         targetSdk 36
         versionCode 2
-        versionName "1.9.6"
+        versionName "1.9.9"
 
-        buildConfigField "String", "sdk_auth_key", "\"${localProperties.getProperty('sdk_auth_key', '')}\""
+        buildConfigField "String", "sdk_auth_key", sdkAuthKeyLiteral
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -69,11 +79,11 @@ android {
 }
 
 dependencies {
-    implementation "com.sency.smkit:smkit:1.9.6"
+    implementation "com.sency.smkit:smkit:1.9.9"
     // SMKit's public API exposes these model types. Keep them on the compile classpath
     // so the demo can call the typed APIs directly instead of using reflection.
-    implementation "com.sency.smbase.data:smbase-data:1.9.6"
-    implementation "com.sency.smbase.nativeclient:smbase-native-client:1.9.6"
+    implementation "com.sency.smbase.data:smbase-data:1.9.9"
+    implementation "com.sency.smbase.nativeclient:smbase-native-client:1.9.9"
 
     implementation "androidx.constraintlayout:constraintlayout:2.1.4"
 
