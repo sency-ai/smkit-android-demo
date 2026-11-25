@@ -1,0 +1,2 @@
+# Copy to AuthKey.local.properties (git-ignored) and paste your Sency SDK key.
+SMKIT_AUTH_KEY=

@@ -1,13 +1,13 @@
 # SMKit Android Demo
 
-This application is the customer-facing reference for SMKit 1.9.6's low-level camera and movement-detection API. It deliberately uses SMKit directly, without SMKitUI, so customers can see the complete lifecycle and own all presentation.
+This application is the customer-facing reference for SMKit 1.9.9's low-level camera and movement-detection API. It deliberately uses SMKit directly, without SMKitUI, so customers can see the complete lifecycle and own all presentation.
 
 ## What the demo covers
 
 - SDK construction, configuration, and pose-estimation preparation
 - 2D camera session start/stop, device-agnostic wide-angle control, and camera release
 - Exercise selection, typed detector start/switch/stop, and session results
-- Default guidance mode and 1.9.6 guidance suggestions
+- Default guidance mode and 1.9.9 guidance suggestions
 - Guidance suggestion callbacks plus reset/rearm controls
 - Guidance vocal coordination, reset, and end controls
 - Adaptive ROM, exercise ROM range, and exercise type
@@ -19,7 +19,7 @@ This application is the customer-facing reference for SMKit 1.9.6's low-level ca
 
 The main integration is in [`ActivityViewModel.kt`](app/src/main/java/com/example/smkitdemoapp/viewModels/ActivityViewModel.kt). The exercise selector drives configuration options, and the workout screen shows the SDK's live telemetry.
 
-The demo uses SMKit Android 1.9.6's public live-camera pipeline.
+The demo uses SMKit Android 1.9.9's public live-camera pipeline.
 
 ## Requirements
 
@@ -29,7 +29,7 @@ The demo uses SMKit Android 1.9.6's public live-camera pipeline.
 - Camera permission
 - A Sency SDK key
 
-## Install SMKit 1.9.6
+## Install SMKit 1.9.9
 
 Add Sency's Maven repository:
 
@@ -45,15 +45,15 @@ Add SMKit and the public model dependencies referenced by SMKit's typed API:
 
 ```groovy
 dependencies {
-    implementation "com.sency.smkit:smkit:1.9.6"
-    implementation "com.sency.smbase.data:smbase-data:1.9.6"
-    implementation "com.sency.smbase.nativeclient:smbase-native-client:1.9.6"
+    implementation "com.sency.smkit:smkit:1.9.9"
+    implementation "com.sency.smbase.data:smbase-data:1.9.9"
+    implementation "com.sency.smbase.nativeclient:smbase-native-client:1.9.9"
 }
 ```
 
 `smbase-data` supplies public types such as `RomRange`, `SMBaseExerciseType`, `DownloadModel`, and raw algorithm data. `smbase-native-client` supplies `FormFeedbackType`.
 
-SMKit 1.9.6 is validated with CameraX 1.1.0, AppCompat 1.4.2, and Kotlin Coroutines 1.5.0. CameraX's managed APIs remain at 1.1.0; the SDK resolves `camera-core` to Sency's `1.1.0.1-sency16kb` compatibility artifact, which replaces only CameraX's native image-processing helper for Android 16 KB page-size support. This demo pins that exact compatibility graph so newer Lifecycle or other transitive requirements do not silently upgrade it. Navigation remains an application dependency and is not required by SMKit.
+SMKit 1.9.9 is validated with CameraX 1.1.0, AppCompat 1.4.2, and Kotlin Coroutines 1.5.0. CameraX's managed APIs remain at 1.1.0; the SDK resolves `camera-core` to Sency's `1.1.0.1-sency16kb` compatibility artifact, which replaces only CameraX's native image-processing helper for Android 16 KB page-size support. This demo pins that exact compatibility graph so newer Lifecycle or other transitive requirements do not silently upgrade it. Navigation remains an application dependency and is not required by SMKit.
 
 The app also keeps the native-library packaging rule used by the SDK:
 
@@ -65,13 +65,17 @@ packagingOptions {
 
 ## Configure the demo
 
-Create or update the untracked `local.properties` file:
+Copy the template in the project root and paste your key into the copy:
 
-```properties
-sdk_auth_key=your_sency_sdk_key_here
+```bash
+cp AuthKey.local.properties.example AuthKey.local.properties
 ```
 
-The app maps this to `BuildConfig.sdk_auth_key`; never commit a real key.
+```properties
+SMKIT_AUTH_KEY=your_sency_sdk_key_here
+```
+
+`AuthKey.local.properties` is git-ignored, so the key never shows up in `git status` or a commit. The build also reads `sdk_auth_key` from `local.properties` or the `SMKIT_AUTH_KEY` environment variable (useful for CI). The app exposes the key as `BuildConfig.sdk_auth_key`.
 
 ```kotlin
 val smKit = SMKit.Builder(applicationContext)
@@ -97,7 +101,7 @@ SMKit must finish configuration before a session starts. Preparing pose estimati
 
 ## Model and asset delivery
 
-SMKit 1.9.6 obtains configuration and required models from the server and validates them before use. Keep the device online for initial configuration and for model/resource downloads that have not completed before. Previously downloaded valid server-derived cache entries may be reused when refresh is unavailable.
+SMKit 1.9.9 obtains configuration and required models from the server and validates them before use. Keep the device online for initial configuration and for model/resource downloads that have not completed before. Previously downloaded valid server-derived cache entries may be reused when refresh is unavailable.
 
 The low-level SDK also exposes explicit resource preloading:
 
@@ -241,8 +245,12 @@ Resource preloading is also available through the suspending `downloadResources(
 
 `stopSession()` returns `DetectionSessionResultData?` with the session ID, recorded exercises, start/end times, total time, and total score. The demo renders the complete object as formatted JSON and offers a copy action.
 
-## Android 1.9.6 coverage
+## Upgrading to 1.9.9
 
-The demo covers the public SMKit Android 1.9.6 live-camera lifecycle, device-agnostic wide angle, body calibration, pose joints, skeleton rendering, movement feedback, local assessment orchestration, ROM, guidance/default-policy checks, guidance suggestions and recovery controls, feedback exclusion, phone movement, raw pipeline data, model preparation, resource preloading/warnings, and typed result models.
+SMKit 1.9.9 needs no source changes for apps built against 1.9.6 or later; update the three dependency versions together. The in-workout voice coach removed in 1.9.9 was part of SMKitUI, not SMKit. The native client adds `FormFeedbackType` values; an exhaustive `when` over that enum needs an `else` branch.
+
+## Android 1.9.9 coverage
+
+The demo covers the public SMKit Android 1.9.9 live-camera lifecycle, device-agnostic wide angle, body calibration, pose joints, skeleton rendering, movement feedback, local assessment orchestration, ROM, guidance/default-policy checks, guidance suggestions and recovery controls, feedback exclusion, phone movement, raw pipeline data, model preparation, resource preloading/warnings, and typed result models.
 
 For support, contact [support@sency.ai](mailto:support@sency.ai).

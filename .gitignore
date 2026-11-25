@@ -25,3 +25,6 @@ build/
 bin/
 classes/
 gen/
+
+# Local SDK key (never commit)
+/AuthKey.local.properties
